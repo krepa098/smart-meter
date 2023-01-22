@@ -1,0 +1,37 @@
+[package]
+name = "firmware-m1s1"
+version = "0.1.0"
+authors = ["Paul <krepa098@gmail.com>"]
+edition = "2021"
+resolver = "2"
+
+[profile.release]
+opt-level = "s"
+
+[profile.dev]
+debug = true # Symbols are nice and they don't increase the size on Flash
+opt-level = "s"
+
+[features]
+#pio = ["esp-idf-sys/pio"]
+
+[dependencies]
+esp-idf-sys = { version = "0.32.1", features = ["binstart"] }
+esp-idf-hal = "0.40.1"
+esp-idf-svc = { version = "0.45.0", features = [] }
+embedded-svc = "0.24.0"
+anyhow = "1.0.68"
+heapless = "0.7"
+embedded-hal = "0.2.7"
+serde = "1.0.151"
+log = "0.4.17"
+bitbybit = "1.1.2"
+arbitrary-int = "1.2.0"
+num_enum = "0.5.7"
+ciborium = "0.2.0"
+dotenvy = "0.15"
+
+[build-dependencies]
+embuild = "0.31.0"
+anyhow = "1"
+bindgen = "0.63.0"
