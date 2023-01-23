@@ -247,7 +247,6 @@ dependencies = [
  "dotenvy",
  "env_logger",
  "serde",
- "serde_json",
  "tokio",
 ]
 

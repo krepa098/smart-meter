@@ -54,13 +54,40 @@ impl Db {
         Ok(())
     }
 
-    pub fn all_measurements(&mut self) -> Result<Vec<DeviceMeasurement>> {
+    pub fn measurements_byte_date(
+        &mut self,
+        dev_id: u32,
+        from_date: u64,
+        to_date: u64,
+    ) -> Result<Vec<DeviceMeasurement>> {
         use crate::schema::measurements::dsl::*;
         let res = measurements
-            .limit(10)
+            .filter(device_id.eq(dev_id as i32))
+            .filter(timestamp.ge(from_date as i64))
+            .filter(timestamp.le(to_date as i64))
             .order(id.desc())
             .load::<DeviceMeasurement>(&mut self.conn)?;
 
         Ok(res)
+    }
+
+    pub fn all_measurements(&mut self) -> Result<Vec<DeviceMeasurement>> {
+        use crate::schema::measurements::dsl::*;
+        let res = measurements
+            .limit(100)
+            .order(id.desc())
+            .load::<DeviceMeasurement>(&mut self.conn)?;
+
+        Ok(res)
+    }
+
+    pub fn known_devices(&mut self) -> Result<Vec<i32>> {
+        use crate::schema::measurements::dsl::*;
+        let devices = measurements
+            .select(device_id)
+            .distinct()
+            .load::<i32>(&mut self.conn)?;
+
+        Ok(devices)
     }
 }
