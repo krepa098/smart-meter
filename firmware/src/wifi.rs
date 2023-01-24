@@ -1,24 +1,29 @@
+use anyhow::{bail, Result};
+use log::info;
 use std::{net::Ipv4Addr, time::Duration};
 
-use anyhow::bail;
 use embedded_svc::wifi::{ClientConfiguration, Configuration, Wifi};
-use log::info;
-
 use esp_idf_hal::peripheral;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     netif::{EspNetif, EspNetifWait},
     wifi::{EspWifi, WifiWait},
 };
-use esp_idf_sys as _;
-use heapless::String; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
+use heapless::String;
+
+pub struct WiFi {
+    wifi: Box<EspWifi<'static>>,
+    sys_loop: EspSystemEventLoop,
+    ssid: String<32>,
+    pw: String<32>,
+}
 
 pub fn setup_wifi(
     modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
     sys_loop: EspSystemEventLoop,
     ssid: &str,
     pw: &str,
-) -> anyhow::Result<Box<EspWifi<'static>>> {
+) -> Result<WiFi> {
     let mut wifi = Box::new(EspWifi::new(modem, sys_loop.clone(), None)?);
 
     info!("Scanning...");
@@ -80,12 +85,70 @@ pub fn setup_wifi(
                     bail!("Wifi did not connect or did not receive a DHCP lease");
                 }
             }
+
+            std::thread::sleep(Duration::from_secs(5));
         }
 
         let ip_info = wifi.sta_netif().get_ip_info()?;
 
         info!("Wifi DHCP info: {:?}", ip_info);
     }
-    Ok(wifi)
+    Ok(WiFi {
+        wifi,
+        sys_loop,
+        ssid: ssid.into(),
+        pw: pw.into(),
+    })
     // bail!("Wifi not found")
+}
+
+impl WiFi {
+    pub fn stop(&mut self) -> Result<()> {
+        self.wifi.stop()?;
+        Ok(())
+    }
+
+    pub fn start(&mut self) -> Result<()> {
+        self.wifi.start()?;
+        if !WifiWait::new(&self.sys_loop)?
+            .wait_with_timeout(Duration::from_secs(20), || self.wifi.is_started().unwrap())
+        {
+            bail!("Wifi did not start");
+        }
+        Ok(())
+    }
+
+    pub fn connect(&mut self) -> Result<()> {
+        if self.is_connected()? {
+            return Ok(());
+        }
+
+        let mut retries = 3;
+        while retries > 0 {
+            info!("Connecting with '{}'...", self.ssid);
+            self.wifi.connect()?;
+
+            retries -= 1;
+            if EspNetifWait::new::<EspNetif>(self.wifi.sta_netif(), &self.sys_loop)?
+                .wait_with_timeout(Duration::from_secs(10), || {
+                    self.wifi.is_connected().unwrap()
+                        && self.wifi.sta_netif().get_ip_info().unwrap().ip
+                            != Ipv4Addr::new(0, 0, 0, 0)
+                })
+            {
+                break;
+            } else {
+                if retries == 0 {
+                    bail!("Wifi did not connect or did not receive a DHCP lease");
+                }
+            }
+
+            std::thread::sleep(Duration::from_secs(5));
+        }
+        Ok(())
+    }
+
+    pub fn is_connected(&self) -> Result<bool> {
+        Ok(self.wifi.sta_netif().get_ip_info()?.ip != Ipv4Addr::new(0, 0, 0, 0))
+    }
 }

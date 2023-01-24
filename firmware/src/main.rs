@@ -10,23 +10,23 @@ mod web;
 mod wifi;
 mod zero;
 
+use esp_idf_hal::gpio::PinDriver;
+use esp_idf_hal::ledc::{config::TimerConfig, LedcDriver, LedcTimerDriver};
 use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_hal::{
-    ledc::{config::TimerConfig, LedcDriver, LedcTimerDriver},
-    prelude::*,
-};
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::sntp::SyncStatus;
 use esp_idf_sys;
 use log::info;
 use std::env;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::packet::Measurement;
 use crate::rgb_led::Color;
 use packet::{Header, Packet, Payload};
 
 const ENV_STR: &str = include_str!("../.env");
+
+const MES_INTERVAL: Duration = Duration::from_secs(30);
 
 // -----------------
 // pin definitions
@@ -52,10 +52,24 @@ fn main() -> anyhow::Result<()> {
     // peripherals
     let peripherals = Peripherals::take().unwrap();
 
+    // wu pin
+    let wu_pin = PinDriver::input(peripherals.pins.gpio3)?;
+    unsafe {
+        // enable wakeup on gpio3
+        esp_idf_sys::esp!(esp_idf_sys::gpio_wakeup_enable(
+            wu_pin.pin(),
+            esp_idf_sys::gpio_int_type_t_GPIO_INTR_HIGH_LEVEL,
+        ))?;
+        // enable timer wakeup
+        esp_idf_sys::esp!(esp_idf_sys::esp_sleep_enable_timer_wakeup(
+            MES_INTERVAL.as_micros() as u64
+        ))?;
+    }
+
     // RGB led
     let mut led = {
         let ledc = peripherals.ledc;
-        let config = TimerConfig::default().frequency(5.kHz().into());
+        let config = TimerConfig::default();
 
         let timer_r = LedcTimerDriver::new(ledc.timer0, &config)?;
         let timer_g = LedcTimerDriver::new(ledc.timer1, &config)?;
@@ -83,27 +97,27 @@ fn main() -> anyhow::Result<()> {
         bme680::Device::new(i2c, sda, scl)
     }?;
 
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    std::thread::sleep(Duration::from_millis(100));
 
     if bme680.chip_id_valid()? {
         info!("BME680 found")
     }
 
     led.set_color(&Color::Green);
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    std::thread::sleep(Duration::from_millis(100));
     led.set_color(&Color::Blue);
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    std::thread::sleep(Duration::from_millis(100));
     led.set_color(&Color::Red);
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    std::thread::sleep(Duration::from_millis(100));
 
     // wifi
     dotenvy::from_read(ENV_STR.as_bytes()).ok();
     let wifi_ssid = env::var("WIFI_SSID")?;
     let wifi_pw = env::var("WIFI_PW")?;
     let sys_loop = EspSystemEventLoop::take()?;
-    let _wifi = wifi::setup_wifi(peripherals.modem, sys_loop, &wifi_ssid, &wifi_pw)?;
+    let mut wifi = wifi::setup_wifi(peripherals.modem, sys_loop, &wifi_ssid, &wifi_pw)?;
     led.set_color(&Color::Green);
-    std::thread::sleep(std::time::Duration::from_millis(500));
+    std::thread::sleep(Duration::from_millis(500));
     led.set_color(&Color::Black);
 
     let device_id = utils::device_id()?;
@@ -125,37 +139,55 @@ fn main() -> anyhow::Result<()> {
 
     // adc
     let mut bat = bat::Bat::new(peripherals.adc1, peripherals.pins.gpio1)?;
-    // let a1 = esp_idf_hal::adc::AdcChannelDriver::new::<_, adc::Atten11dB<adc::ADC1>>(
-    //     peripherals.pins.gpio1,
-    // )?;
-    // let adc_driver = esp_idf_hal::adc::AdcDriver::new(
-    //     peripherals.adc1,
-    //     &adc::config::Config::new().calibration(true),
-    // )?;
-    // let v_bat = adc_driver.read(&mut a1)?;
+
+    let mut last_mes = Instant::now() - MES_INTERVAL;
 
     loop {
-        std::thread::sleep(std::time::Duration::from_millis(5000));
-        // std::thread::sleep(std::time::Duration::from_secs(10 * 60));
-
-        if !bme680.is_busy()? {
-            let mes = bme680.read_measurements()?;
-            let v_bat = bat.read_voltage()?;
-            // mc_client.send()?;
-            mc_client.broadcast(&Packet {
-                header: Header::with_device_id(device_id),
-                payload: Payload::Measurements(Measurement {
-                    timestamp: mes.timestamp,
-                    temperature: mes.temperature,
-                    pressure: mes.pressure,
-                    humidity: mes.humidity,
-                    air_quality: mes.air_quality,
-                    v_bat: Some(v_bat),
-                }),
-            })?;
-            //dbg!(mes);
+        if Instant::now().duration_since(last_mes) >= MES_INTERVAL {
+            last_mes = Instant::now();
 
             bme680.trigger_measurement()?;
+            std::thread::sleep(Duration::from_millis(500)); // wait until data is ready
+
+            if !bme680.is_busy()? {
+                let mes = bme680.read_measurements()?;
+                let v_bat = bat.read_voltage()?;
+                // mc_client.send()?;
+
+                wifi.connect()?;
+                if wifi.is_connected()? {
+                    mc_client.broadcast(&Packet {
+                        header: Header::with_device_id(device_id),
+                        payload: Payload::Measurements(Measurement {
+                            timestamp: mes.timestamp,
+                            temperature: mes.temperature,
+                            pressure: mes.pressure,
+                            humidity: mes.humidity,
+                            air_quality: mes.air_quality,
+                            v_bat: Some(v_bat),
+                        }),
+                    })?;
+                }
+
+                //dbg!(mes);
+            }
+        } else {
+            std::thread::sleep(Duration::from_millis(100));
+        }
+
+        // sleep if we are on battery
+        if wu_pin.is_low() {
+            info!("sleep...");
+            wifi.stop()?;
+            std::thread::sleep(Duration::from_millis(50));
+
+            unsafe {
+                esp_idf_sys::esp!(esp_idf_sys::esp_light_sleep_start())?;
+            };
+
+            std::thread::sleep(Duration::from_millis(50));
+            info!("wakeup...");
+            wifi.start()?;
         }
     }
 }
