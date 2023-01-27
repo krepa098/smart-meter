@@ -1,14 +1,11 @@
-use std::time::Duration;
-
-use crate::bsec2;
 use anyhow::Result;
 use arbitrary_int::*;
 use bitbybit::bitfield;
 use esp_idf_hal::gpio::{InputPin, OutputPin};
 use esp_idf_hal::units::*;
 use esp_idf_hal::{i2c, peripheral};
-use esp_idf_svc::systime::EspSystemTime;
 use log::info;
+use num_enum::TryFromPrimitive;
 
 const DEVICE_ADDR: u8 = 0x76;
 const CHIP_ID: u8 = 0x61;
@@ -179,11 +176,12 @@ pub struct Calibration {
     par_g3: i8,         // 0xEE
     res_heat_range: u8, // 0x02 <5:4>
     res_heat_val: i8,   // 0x00
+    range_sw_err: i8,   // 0x04 <7:4>
 }
 
 #[repr(u8)]
 #[allow(unused)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, TryFromPrimitive)]
 pub enum Oversampling {
     Skip = 0,
     X1 = 0b001,
@@ -222,9 +220,10 @@ pub struct Measurements {
     pub temperature: Option<f32>, // °C
     pub pressure: Option<f32>,    // hPa
     pub humidity: Option<f32>,    // percent
-    pub air_quality: Option<f32>, // ohm
+    pub gas_res: Option<f32>,     // ohm
 }
 
+#[derive(Debug)]
 #[allow(unused)]
 pub struct Config {
     pub t_oversampling: Oversampling,
@@ -234,6 +233,7 @@ pub struct Config {
     pub gas_heater_temp: f32,
     pub gas_heater_duration_ms: u16,
     pub gas_enabled: bool,
+    pub gas_profile: u8, // 0-9
 }
 
 impl Default for Config {
@@ -244,8 +244,9 @@ impl Default for Config {
             h_oversampling: Oversampling::X2,
             iir_filter: IIRFilterSize::Fc0,
             gas_heater_temp: 300.0,
-            gas_heater_duration_ms: 150,
-            gas_enabled: false,
+            gas_heater_duration_ms: 100,
+            gas_enabled: true,
+            gas_profile: 0,
         }
     }
 }
@@ -307,7 +308,8 @@ impl Device {
             res_heat_range: Res_heat_range::new_with_raw_value(device.read_reg(0x02)?)
                 .range()
                 .into(),
-            res_heat_val: device.read_reg(0x00)? as i8, // signed
+            res_heat_val: device.read_reg(0x00)? as i8,
+            range_sw_err: device.read_reg(0x04)? as i8 >> 4,
         };
 
         info!("Calibration data:\n{:?}", &device.cal);
@@ -316,10 +318,6 @@ impl Device {
     }
 
     pub fn setup(&mut self, config: &Config) -> Result<()> {
-        // perform reset
-        self.reset()?;
-        std::thread::sleep(Duration::from_millis(50));
-
         // Setup oversampling
         let ctrl_meas = Ctrl_meas::new_with_raw_value(self.read_reg(register::CTRL_MEAS)?)
             .with_osrs_p(u3::new(config.p_oversampling as u8))
@@ -339,18 +337,18 @@ impl Device {
 
         // set gas sensor hotplate temperature
         self.write_reg(
-            register::GAS_WAIT_0,
+            register::GAS_WAIT_0 + config.gas_profile,
             calc_gas_wait_time(config.gas_heater_duration_ms),
         )?;
         self.write_reg(
-            register::RES_HEAT_0,
+            register::RES_HEAT_0 + config.gas_profile,
             calc_glas_res_heat(config.gas_heater_temp, 20.0, &self.cal),
         )?;
 
         // Ctrl_gas_1 nb_conv<3:0> to 0x0
         // Set run_gas_l to 1 to enable gas measurements
         let ctrl_gas_1 = Ctrl_gas_1::new_with_raw_value(self.read_reg(register::CTRL_GAS_1)?)
-            .with_nb_conv(u4::new(0)) // index of heater set-point
+            .with_nb_conv(u4::new(config.gas_profile)) // index of heater set-point
             .with_run_gas(config.gas_enabled); // enable gas conversion
         self.write_reg(register::CTRL_GAS_1, ctrl_gas_1.raw_value)?;
 
@@ -369,7 +367,7 @@ impl Device {
         Ok(())
     }
 
-    fn reset(&mut self) -> Result<()> {
+    pub fn reset(&mut self) -> Result<()> {
         self.interface
             .write(DEVICE_ADDR, &[register::RESET as u8, 0xB6], TIMEOUT)?;
         Ok(())
@@ -441,9 +439,8 @@ impl Device {
     }
 
     fn read_gas_adc(&mut self) -> Result<u32> {
-        Ok(((self.read_reg(register::GAS_R_MSB)? as u32) << 8
-            | self.read_reg(register::GAS_R_LSB)? as u32)
-            >> 7)
+        Ok(((self.read_reg(register::GAS_R_MSB)? as u32) << 2
+            | (self.read_reg(register::GAS_R_LSB)? as u32) >> 6))
     }
 
     pub fn read_measurements(&mut self) -> Result<Measurements> {
@@ -503,7 +500,7 @@ impl Device {
                 * (par_p10 / 131072.0);
 
             // in hPa
-            (press_comp + (var1 + var2 + var3 + (par_p7 * 128.0)) / 16.0) / 100.0
+            (press_comp + (var1 + var2 + var3 + (par_p7 * 128.0)) / 16.0)
         };
 
         // humidity
@@ -535,9 +532,9 @@ impl Device {
         let gas_res = if gas_r_lsb.gas_valid_r() {
             let gas_adc = self.read_gas_adc()? as f32;
             let gas_range: u32 = gas_r_lsb.gas_range_r().into();
-            let range_switching_error = self.read_reg(0x04)? as f32;
+            let range_sw_err = self.cal.range_sw_err as f32;
 
-            let var1 = (1340.0 + 5.0 * range_switching_error) * CONST_ARRAY1[gas_range as usize];
+            let var1 = (1340.0 + 5.0 * range_sw_err) * CONST_ARRAY1[gas_range as usize];
 
             // in ohm
             Some(var1 * CONST_ARRAY2[gas_range as usize] / (gas_adc as f32 - 512.0 + var1))
@@ -547,14 +544,14 @@ impl Device {
 
         //unsafe { bsec2::bsec_init() };
 
-        let timestamp = { EspSystemTime {}.now() };
+        let timestamp = std::time::SystemTime::now().elapsed()?;
 
         Ok(Measurements {
             timestamp: timestamp.as_secs(),
             temperature: Some(temp_comp),
             pressure: Some(press_comp + self.p_offset),
             humidity: Some(hum_comp + self.h_offset),
-            air_quality: gas_res, // TODO
+            gas_res,
         })
     }
 
@@ -576,13 +573,16 @@ fn calc_gas_wait_time(time: u16) -> u8 {
         if time / d <= 64 {
             div_reg = i as u8;
             time_reg = (time / d) as u8;
+            break;
         }
     }
 
-    Gas_wait_x::new_with_raw_value(0)
+    let gas_wait = Gas_wait_x::new_with_raw_value(0)
         .with_div(u2::new(div_reg))
         .with_timer(u6::new(time_reg))
-        .raw_value()
+        .raw_value();
+    dbg!(div_reg, time_reg);
+    gas_wait
 }
 
 fn calc_glas_res_heat(target_temp: f32, amb_temp: f32, cal: &Calibration) -> u8 {
