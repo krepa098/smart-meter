@@ -118,7 +118,7 @@ pub fn sensor_control(ts_ns: u64, sensor: &mut bme680::Device) -> Result<(Output
         bail!("Sensor control error: {}", ret);
     }
 
-    //
+    // Note: heater_*_profile are for parallel mode on bme688
     let config = bme680::Config {
         t_oversampling: bme680::Oversampling::try_from_primitive(
             sensor_settings.temperature_oversampling,
@@ -138,7 +138,6 @@ pub fn sensor_control(ts_ns: u64, sensor: &mut bme680::Device) -> Result<(Output
         gas_enabled: sensor_settings.run_gas == 1,
         gas_profile: 0,
     };
-    dbg!(&config);
 
     if sensor_settings.trigger_measurement == 1 {
         sensor.setup(&config)?;
@@ -191,6 +190,21 @@ pub fn sensor_control(ts_ns: u64, sensor: &mut bme680::Device) -> Result<(Output
         outputs,
         sensor_settings.next_call as u64 - mes_sleep.as_nanos() as u64,
     ))
+}
+
+pub fn version() -> Result<[u8; 4]> {
+    let mut version = unsafe { std::mem::zeroed::<sys::bsec_version_t>() };
+    let ret = unsafe { sys::bsec_get_version(&mut version) };
+    if ret != sys::bsec_library_return_t_BSEC_OK {
+        bail!("Cannot get version: {}", ret);
+    }
+
+    Ok([
+        version.major,
+        version.minor,
+        version.major_bugfix,
+        version.minor_bugfix,
+    ])
 }
 
 #[repr(u32)]
