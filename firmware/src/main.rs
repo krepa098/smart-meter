@@ -73,14 +73,17 @@ fn main() -> anyhow::Result<()> {
     let device_id = utils::device_id()?;
     info!("Device ID: {}", device_id);
 
+    let mut model = [0; 16];
+    model[0..DEVICE_MODEL.as_bytes().len()].copy_from_slice(DEVICE_MODEL.as_bytes());
+
     bsec2::init()?;
+    let bsec_version = bsec2::version()?;
+    info!(
+        "bsec2 v{}.{}.{}.{}",
+        bsec_version[0], bsec_version[1], bsec_version[2], bsec_version[3]
+    );
     {
         use bsec2::*;
-        let besc_version = version()?;
-        info!(
-            "bsec2 v{}.{}.{}.{}",
-            besc_version[0], besc_version[1], besc_version[2], besc_version[3]
-        );
 
         let _sensor_inputs = bsec2::update_subscription(&[
             VirtualSensorConfiguration {
@@ -213,6 +216,7 @@ fn main() -> anyhow::Result<()> {
     let mut report_interval = 0;
     let mut report_lock = None;
     let mut next_sample_instant = None;
+    let startup_time = utils::system_time();
 
     loop {
         if let Some(inst) = next_sample_instant {
@@ -221,6 +225,7 @@ fn main() -> anyhow::Result<()> {
         println!("sample: {:?}", utils::system_time());
         let (outputs, next_call) = bsec2::sensor_control(utils::system_time(), &mut bme680)?;
         next_sample_instant = Some(next_call);
+        let (bat_cap, bat_v) = bat.capacity()?;
 
         println!("current: {:?}, next {:?}", utils::system_time(), next_call);
 
@@ -232,6 +237,8 @@ fn main() -> anyhow::Result<()> {
                 pressure: outputs.raw_pressure.map(|f| f.signal),
                 humidity: outputs.heat_compensated_humidity.map(|f| f.signal),
                 air_quality: outputs.static_iaq.map(|f| f.signal),
+                bat_voltage: Some(bat_v),
+                bat_capacity: Some(bat_cap),
             }),
         })?;
 
@@ -239,6 +246,17 @@ fn main() -> anyhow::Result<()> {
         report_interval += 1;
         if report_interval == MES_REPORT_INTERVAL_DIV {
             report_interval = 0;
+
+            mc_client.enqueue(Packet {
+                header: Header::with_device_id(device_id),
+                payload: Payload::DeviceInfo(DeviceInfo {
+                    uptime: (utils::system_time() - startup_time).as_millis() as u64,
+                    firmware_version: fw_version,
+                    bsec_version,
+                    model,
+                }),
+            })?;
+
             println!("lock!");
             report_lock = Some(lightsleep.lock());
 

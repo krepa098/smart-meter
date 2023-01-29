@@ -10,7 +10,7 @@ pub struct Client {
     socket: UdpSocket, // 508 bytes (single fragment)
     command_socket: UdpSocket,
     pipeline: std::sync::Mutex<Pipeline<Packet, middleware::pipeline::Default>>,
-    queue: heapless::Vec<Packet, 32>,
+    queue: heapless::Vec<Packet, 40>,
 }
 
 impl Client {
@@ -48,8 +48,8 @@ impl Client {
             .send_to(&mut cursor, payload)
             .unwrap();
 
-        println!("pkg buf len {}", cursor.position());
-        self.socket.send(&cursor.into_inner())?;
+        let len = cursor.position() as usize;
+        self.socket.send(&cursor.into_inner()[0..len])?;
 
         Ok(())
     }

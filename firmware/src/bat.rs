@@ -35,7 +35,7 @@ impl BatMonitor {
 
         // 4xAA battery: 1.5V=100%, 1.2V=0%
         let bat_count = 4.0;
-        let v_min = 1.2 * bat_count;
+        let v_min = 1.1 * bat_count;
         let v_max = 1.5 * bat_count;
         let v_range = v_max - v_min;
 

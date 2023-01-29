@@ -37,6 +37,7 @@ async fn main() -> Result<()> {
                     let mut data = std::io::Cursor::new(&buf[0..len]);
                     // try deserialize
                     let packet = pipeline.receive_from(&mut data);
+                    dbg!(len);
                     // let packet = ciborium::de::from_reader::<packet::Packet, &[u8]>(&buf);
 
                     if let Ok(packet) = packet {
@@ -57,9 +58,10 @@ async fn main() -> Result<()> {
                                     .unwrap();
                                 }
                             }
-                            _ => (),
+                            packet::Payload::DeviceInfo(info) => {
+                                dbg!(info);
+                            },
                         }
-                        dbg!(packet);
                     }
 
                 }
