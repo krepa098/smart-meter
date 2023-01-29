@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use actix_web::rt::net::UdpSocket;
 use anyhow::Result;
+use protocol::wire::{dgram::Pipeline, middleware};
 use tokio::signal;
 
 mod db;
@@ -14,6 +15,14 @@ async fn main() -> Result<()> {
     std::env::set_var("RUST_LOG", "debug");
     env_logger::init();
 
+    let middleware = middleware::pipeline::default();
+    let mut pipeline: Pipeline<packet::Packet, middleware::pipeline::Default> = Pipeline::new(
+        middleware,
+        protocol::Settings {
+            byte_order: protocol::ByteOrder::LittleEndian,
+        },
+    );
+
     let sock = UdpSocket::bind("0.0.0.0:8989").await?;
 
     let db = Arc::new(Mutex::new(db::Db::connect()?));
@@ -24,15 +33,17 @@ async fn main() -> Result<()> {
         println!("Listening...");
         loop {
             tokio::select! {
-                Ok((_len, _addr)) = sock.recv_from(&mut buf) => {
+                Ok((len, _addr)) = sock.recv_from(&mut buf) => {
+                    let mut data = std::io::Cursor::new(&buf[0..len]);
                     // try deserialize
-                    let packet = ciborium::de::from_reader::<packet::Packet, &[u8]>(&buf);
+                    let packet = pipeline.receive_from(&mut data);
+                    // let packet = ciborium::de::from_reader::<packet::Packet, &[u8]>(&buf);
 
                     if let Ok(packet) = packet {
                         let device_id = packet.header.device_id;
 
                         match &packet.payload {
-                            packet::Payload::Measurements(mes) => {
+                            packet::Payload::Measurement(mes) => {
                                 if let Ok(mut db) = db.lock() {
                                     db.insert_measurement(&db::NewDeviceMeasurement {
                                         device_id: device_id as i32,
@@ -41,14 +52,16 @@ async fn main() -> Result<()> {
                                         pressure: mes.pressure,
                                         humidity: mes.humidity,
                                         air_quality: mes.air_quality,
-                                        v_bat: mes.v_bat,
+                                        v_bat: None,
                                     })
                                     .unwrap();
                                 }
                             }
+                            _ => (),
                         }
                         dbg!(packet);
                     }
+
                 }
                 Ok(()) = signal::ctrl_c() => { break; }
             }
