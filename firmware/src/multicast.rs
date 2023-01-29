@@ -1,14 +1,16 @@
+use anyhow::{bail, Result};
+use protocol::wire::{dgram::Pipeline, middleware};
 use std::net::UdpSocket;
 
-use anyhow::Result;
-
-use crate::bme680;
+use crate::packet::Packet;
 
 const MAGIC: &str = "M1S1";
 
 pub struct Client {
-    socket: UdpSocket,
+    socket: UdpSocket, // 508 bytes (single fragment)
     command_socket: UdpSocket,
+    pipeline: std::sync::Mutex<Pipeline<Packet, middleware::pipeline::Default>>,
+    queue: heapless::Vec<Packet, 32>,
 }
 
 impl Client {
@@ -21,33 +23,48 @@ impl Client {
 
         let command_socket = UdpSocket::bind("192.168.178.255:6464")?;
 
+        let middleware = middleware::pipeline::default();
+        let pipeline = Pipeline::new(
+            middleware,
+            protocol::Settings {
+                byte_order: protocol::ByteOrder::LittleEndian,
+            },
+        );
+
         Ok(Self {
             socket,
             command_socket,
+            pipeline: std::sync::Mutex::new(pipeline),
+            queue: heapless::Vec::new(),
         })
     }
 
-    pub fn send(&mut self) -> Result<()> {
-        // limited to 64k
-        self.socket.send("Hello World".as_bytes())?;
+    pub fn broadcast_pkt(&self, payload: &Packet) -> Result<()> {
+        let buffer = [0u8; 256];
+        let mut cursor = std::io::Cursor::new(buffer);
+        self.pipeline
+            .lock()
+            .unwrap()
+            .send_to(&mut cursor, payload)
+            .unwrap();
+
+        println!("pkg buf len {}", cursor.position());
+        self.socket.send(&cursor.into_inner())?;
+
         Ok(())
     }
 
-    pub fn broadcast<P: ?Sized + serde::Serialize>(&mut self, payload: &P) -> Result<()> {
-        let mut buffer = [0u8; 256];
-        ciborium::ser::into_writer(payload, buffer.as_mut_slice())?;
-
-        let mut i = 0;
-        for (bi, b) in buffer.iter().rev().enumerate() {
-            if *b != 0 {
-                i = bi - 1;
-                break;
-            }
+    pub fn broadcast_queue(&mut self) -> Result<()> {
+        for pkt in &self.queue {
+            self.broadcast_pkt(pkt)?;
         }
+        self.queue.clear();
 
-        println!("buf len {}", buffer.len() - i);
-        self.socket.send(&buffer[0..buffer.len() - i])?;
+        Ok(())
+    }
 
+    pub fn enqueue(&mut self, pkt: Packet) -> Result<()> {
+        self.queue.push(pkt).unwrap(); // TODO
         Ok(())
     }
 }

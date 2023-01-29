@@ -1,11 +1,14 @@
-const MAGIC: &str = "M1S1";
+use protocol::Protocol;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+const MAGIC: &str = "BRST";
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, Protocol)]
 pub struct Header {
     magic: String,
     pub device_id: u32,
 }
 
+#[allow(unused)]
 impl Header {
     pub fn with_device_id(device_id: u32) -> Self {
         Self {
@@ -15,24 +18,35 @@ impl Header {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Protocol)]
 pub struct Packet {
     pub header: Header,
     pub payload: Payload,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Protocol)]
 pub enum Payload {
-    Measurements(Measurement),
+    Measurement(Measurement),
+    DeviceInfo(DeviceInfo),
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, Protocol)]
 #[allow(unused)]
 pub struct Measurement {
     pub timestamp: u64,
     pub temperature: Option<f32>, // °C
-    pub pressure: Option<f32>,    // hPa
+    pub pressure: Option<f32>,    // Pa
     pub humidity: Option<f32>,    // percent
     pub air_quality: Option<f32>, // ohm
-    pub v_bat: Option<f32>,       // V
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, Protocol)]
+#[allow(unused)]
+pub struct DeviceInfo {
+    pub uptime: u64,               // seconds
+    pub firmware_version: [u8; 4], // major.minor.bugfix.misc
+    pub bsec_version: [u8; 4],     // major.minor.bugfix.misc
+    pub model: [u8; 16],           // utf8 string
+    pub bat_voltage: f32,          // V
+    pub bat_capacity: f32,         // percent
 }

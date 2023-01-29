@@ -581,7 +581,6 @@ fn calc_gas_wait_time(time: u16) -> u8 {
         .with_div(u2::new(div_reg))
         .with_timer(u6::new(time_reg))
         .raw_value();
-    dbg!(div_reg, time_reg);
     gas_wait
 }
 

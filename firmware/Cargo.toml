@@ -20,15 +20,16 @@ esp-idf-sys = { version = "0.32.1", features = ["binstart"] }
 esp-idf-hal = "0.40.1"
 esp-idf-svc = { version = "0.45.0", features = [] }
 embedded-svc = "0.24.0"
+embedded-hal = "0.2.7"
+
 anyhow = "1.0.68"
 heapless = "0.7"
-embedded-hal = "0.2.7"
 serde = "1.0.151"
 log = "0.4.17"
 bitbybit = "1.1.2"
 arbitrary-int = "1.2.0"
 num_enum = "0.5.7"
-ciborium = "0.2.0"
+protocol = "3.4.0"
 dotenvy = "0.15"
 
 [build-dependencies]

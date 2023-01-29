@@ -111,7 +111,8 @@ pub fn update_subscription(
     Ok(required_sensors)
 }
 
-pub fn sensor_control(ts_ns: u64, sensor: &mut bme680::Device) -> Result<(Outputs, u64)> {
+pub fn sensor_control(ts: Duration, sensor: &mut bme680::Device) -> Result<(Outputs, Duration)> {
+    let ts_ns = ts.as_nanos() as u64;
     let mut sensor_settings = unsafe { std::mem::zeroed::<sys::bsec_bme_settings_t>() };
     let ret = unsafe { sys::bsec_sensor_control(ts_ns as i64, &mut sensor_settings) };
     if ret != sys::bsec_library_return_t_BSEC_OK {
@@ -144,7 +145,7 @@ pub fn sensor_control(ts_ns: u64, sensor: &mut bme680::Device) -> Result<(Output
         sensor.trigger_measurement()?;
     }
 
-    let mes_sleep = std::time::Duration::from_millis(200 + sensor_settings.heater_duration as u64);
+    let mes_sleep = std::time::Duration::from_millis(150 + sensor_settings.heater_duration as u64);
     std::thread::sleep(mes_sleep);
 
     if sensor.is_busy()? {
@@ -154,41 +155,49 @@ pub fn sensor_control(ts_ns: u64, sensor: &mut bme680::Device) -> Result<(Output
     let mes = sensor.read_measurements()?;
 
     // feed data to do_steps
-    let mut bsec_inputs = smallvec::SmallVec::<[Input; 4]>::new();
+    let mut bsec_inputs = heapless::Vec::<Input, 4>::new();
     if (sensor_settings.process_data & sys::PROCESS_GAS) > 0 {
-        bsec_inputs.push(Input::new(
-            ts_ns,
-            Sensor::Phyical(PhysicalSensor::Gasresistor),
-            mes.gas_res.unwrap(),
-        ));
+        bsec_inputs
+            .push(Input::new(
+                ts_ns,
+                Sensor::Phyical(PhysicalSensor::Gasresistor),
+                mes.gas_res.unwrap(),
+            ))
+            .unwrap();
     }
     if (sensor_settings.process_data & sys::PROCESS_HUMIDITY) > 0 {
-        bsec_inputs.push(Input::new(
-            ts_ns,
-            Sensor::Phyical(PhysicalSensor::Humidity),
-            mes.humidity.unwrap(),
-        ));
+        bsec_inputs
+            .push(Input::new(
+                ts_ns,
+                Sensor::Phyical(PhysicalSensor::Humidity),
+                mes.humidity.unwrap(),
+            ))
+            .unwrap();
     }
     if (sensor_settings.process_data & sys::PROCESS_PRESSURE) > 0 {
-        bsec_inputs.push(Input::new(
-            ts_ns,
-            Sensor::Phyical(PhysicalSensor::Pressure),
-            mes.pressure.unwrap(),
-        ));
+        bsec_inputs
+            .push(Input::new(
+                ts_ns,
+                Sensor::Phyical(PhysicalSensor::Pressure),
+                mes.pressure.unwrap(),
+            ))
+            .unwrap();
     }
     if (sensor_settings.process_data & sys::PROCESS_TEMPERATURE) > 0 {
-        bsec_inputs.push(Input::new(
-            ts_ns,
-            Sensor::Phyical(PhysicalSensor::Temperature),
-            mes.temperature.unwrap(),
-        ));
+        bsec_inputs
+            .push(Input::new(
+                ts_ns,
+                Sensor::Phyical(PhysicalSensor::Temperature),
+                mes.temperature.unwrap(),
+            ))
+            .unwrap();
     }
 
     let outputs = do_steps(&bsec_inputs)?;
 
     Ok((
         outputs,
-        sensor_settings.next_call as u64 - mes_sleep.as_nanos() as u64,
+        Duration::from_nanos(sensor_settings.next_call as u64),
     ))
 }
 
