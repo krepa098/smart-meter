@@ -1,6 +1,17 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    devices (device_id) {
+        device_id -> Integer,
+        fw_version -> Text,
+        bsec_version -> Text,
+        wifi_ssid -> Text,
+        uptime -> Integer,
+        report_interval -> Integer,
+    }
+}
+
+diesel::table! {
     measurements (id) {
         id -> Integer,
         device_id -> Integer,
@@ -9,6 +20,12 @@ diesel::table! {
         humidity -> Nullable<Float>,
         pressure -> Nullable<Float>,
         air_quality -> Nullable<Float>,
-        v_bat -> Nullable<Float>,
+        bat_v -> Nullable<Float>,
+        bat_cap -> Nullable<Float>,
     }
 }
+
+diesel::allow_tables_to_appear_in_same_query!(
+    devices,
+    measurements,
+);

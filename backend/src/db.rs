@@ -15,7 +15,8 @@ pub struct NewDeviceMeasurement {
     pub pressure: Option<f32>,    // hPa
     pub humidity: Option<f32>,    // percent
     pub air_quality: Option<f32>, // ohm
-    pub v_bat: Option<f32>,       // V
+    pub bat_v: Option<f32>,       // V
+    pub bat_cap: Option<f32>,     // percent
 }
 
 #[derive(Debug, Queryable, serde::Serialize)]
@@ -28,7 +29,8 @@ pub struct DeviceMeasurement {
     pub pressure: Option<f32>,    // hPa
     pub humidity: Option<f32>,    // percent
     pub air_quality: Option<f32>, // ohm
-    pub v_bat: Option<f32>,       // V
+    pub bat_v: Option<f32>,       // V
+    pub bat_cap: Option<f32>,     // percent
 }
 
 pub struct Db {

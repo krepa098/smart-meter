@@ -37,8 +37,6 @@ async fn main() -> Result<()> {
                     let mut data = std::io::Cursor::new(&buf[0..len]);
                     // try deserialize
                     let packet = pipeline.receive_from(&mut data);
-                    dbg!(len);
-                    // let packet = ciborium::de::from_reader::<packet::Packet, &[u8]>(&buf);
 
                     if let Ok(packet) = packet {
                         let device_id = packet.header.device_id;
@@ -53,7 +51,8 @@ async fn main() -> Result<()> {
                                         pressure: mes.pressure,
                                         humidity: mes.humidity,
                                         air_quality: mes.air_quality,
-                                        v_bat: None,
+                                        bat_v: None,
+                                        bat_cap: None,
                                     })
                                     .unwrap();
                                 }

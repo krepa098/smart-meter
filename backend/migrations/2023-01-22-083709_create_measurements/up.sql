@@ -1,5 +1,5 @@
 -- Your SQL goes here
-CREATE TABLE "measurements" (
+CREATE TABLE measurements (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     device_id INTEGER NOT NULL,
     timestamp BIGINT NOT NULL,
