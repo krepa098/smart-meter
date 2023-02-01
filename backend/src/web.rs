@@ -3,8 +3,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use actix_cors::Cors;
 use actix_web::{
     get,
+    http::header,
     web::{self, Data},
     App, HttpResponse, HttpServer, Responder,
 };
@@ -14,6 +16,11 @@ use crate::db::Db;
 #[get("/")]
 async fn hello(_db: web::Data<Arc<Mutex<Db>>>) -> impl Responder {
     return HttpResponse::Ok().body("backend");
+}
+
+#[get("/test")]
+async fn test(_db: web::Data<Arc<Mutex<Db>>>) -> impl Responder {
+    return HttpResponse::Ok().body("{ \"backend\": \"hello\" }");
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -47,10 +54,10 @@ async fn api_measurements_all(db: web::Data<Arc<Mutex<Db>>>) -> io::Result<impl 
     Err(io::Error::new(io::ErrorKind::BrokenPipe, "".to_string()))
 }
 
-#[get("/api/known_devices")]
+#[get("/api/devices")]
 async fn api_known_devices(db: web::Data<Arc<Mutex<Db>>>) -> io::Result<impl Responder> {
     if let Ok(mut db) = db.lock() {
-        if let Ok(res) = db.known_devices() {
+        if let Ok(res) = db.devices() {
             return Ok(web::Json(res));
         }
     }
@@ -62,11 +69,21 @@ pub async fn new_http_server(db: Arc<Mutex<Db>>) -> std::io::Result<()> {
         App::new()
             .app_data(Data::new(db.clone()))
             .service(hello)
+            .service(test)
             .service(api_measurements_by_date)
             .service(api_measurements_all)
             .service(api_known_devices)
+            .wrap(
+                Cors::default()
+                    .allowed_origin("http://127.0.0.1:8080")
+                    .allowed_methods(vec!["GET", "POST"])
+                    .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+                    .allowed_header(header::CONTENT_TYPE)
+                    .supports_credentials()
+                    .max_age(3600),
+            )
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", 8081))?
     .run()
     .await
 }

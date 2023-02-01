@@ -33,6 +33,19 @@ pub struct DeviceMeasurement {
     pub bat_cap: Option<f32>,     // percent
 }
 
+#[derive(Debug, Default, Insertable, Queryable, serde::Serialize)]
+#[diesel(table_name=devices)]
+#[allow(unused)]
+pub struct DeviceInfo {
+    pub device_id: i32, // unique, key
+    pub fw_version: String,
+    pub bsec_version: String,
+    pub wifi_ssid: String,
+    pub uptime: i32,          // ms
+    pub report_interval: i32, // ms
+    pub last_seen: i64,       // ms
+}
+
 pub struct Db {
     conn: SqliteConnection,
 }
@@ -53,6 +66,13 @@ impl Db {
             .values(mes)
             .execute(&mut self.conn)?;
 
+        Ok(())
+    }
+
+    pub fn update_device_info(&mut self, info: &DeviceInfo) -> Result<()> {
+        diesel::replace_into(devices::table)
+            .values(info)
+            .execute(&mut self.conn)?;
         Ok(())
     }
 
@@ -83,12 +103,9 @@ impl Db {
         Ok(res)
     }
 
-    pub fn known_devices(&mut self) -> Result<Vec<i32>> {
-        use crate::schema::measurements::dsl::*;
-        let devices = measurements
-            .select(device_id)
-            .distinct()
-            .load::<i32>(&mut self.conn)?;
+    pub fn devices(&mut self) -> Result<Vec<DeviceInfo>> {
+        use crate::schema::devices::dsl;
+        let devices = dsl::devices.load::<DeviceInfo>(&mut self.conn)?;
 
         Ok(devices)
     }

@@ -5,7 +5,8 @@ CREATE TABLE devices (
     bsec_version TEXT NOT NULL,
     wifi_ssid TEXT NOT NULL,
     uptime INTEGER NOT NULL,
-    report_interval INTEGER NOT NULL
+    report_interval INTEGER NOT NULL,
+    last_seen BIGINT NOT NULL
 );
 
 ALTER TABLE measurements

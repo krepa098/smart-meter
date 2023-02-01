@@ -8,6 +8,7 @@ diesel::table! {
         wifi_ssid -> Text,
         uptime -> Integer,
         report_interval -> Integer,
+        last_seen -> BigInt,
     }
 }
 

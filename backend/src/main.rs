@@ -10,6 +10,13 @@ mod packet;
 mod schema;
 mod web;
 
+fn ms_since_epoch() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis()
+}
+
 #[actix_web::main]
 async fn main() -> Result<()> {
     std::env::set_var("RUST_LOG", "debug");
@@ -58,6 +65,26 @@ async fn main() -> Result<()> {
                                 }
                             }
                             packet::Payload::DeviceInfo(info) => {
+                                if let Ok(mut db) = db.lock() {
+                                    db.update_device_info(&db::DeviceInfo {
+                                        device_id: device_id as i32,
+                                        fw_version: format!("v{}.{}.{}.{}",
+                                            info.firmware_version[0],
+                                            info.firmware_version[1],
+                                            info.firmware_version[2],
+                                            info.firmware_version[3]),
+                                        bsec_version: format!("v{}.{}.{}.{}",
+                                            info.bsec_version[0],
+                                            info.bsec_version[1],
+                                            info.bsec_version[2],
+                                            info.bsec_version[3]),
+                                        wifi_ssid: "".to_string(),
+                                        uptime: info.uptime as i32,
+                                        report_interval: 0,
+                                        last_seen: ms_since_epoch() as i64,
+                                    })
+                                    .unwrap();
+                                }
                                 dbg!(info);
                             },
                         }
