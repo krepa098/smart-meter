@@ -3,9 +3,10 @@ CREATE TABLE devices (
     device_id INTEGER PRIMARY KEY NOT NULL,
     fw_version TEXT NOT NULL,
     bsec_version TEXT NOT NULL,
-    wifi_ssid TEXT NOT NULL,
+    wifi_ssid TEXT,
     uptime INTEGER NOT NULL,
     report_interval INTEGER NOT NULL,
+    sample_interval INTEGER NOT NULL,
     last_seen BIGINT NOT NULL
 );
 

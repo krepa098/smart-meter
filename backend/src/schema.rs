@@ -5,9 +5,10 @@ diesel::table! {
         device_id -> Integer,
         fw_version -> Text,
         bsec_version -> Text,
-        wifi_ssid -> Text,
+        wifi_ssid -> Nullable<Text>,
         uptime -> Integer,
         report_interval -> Integer,
+        sample_interval -> Integer,
         last_seen -> BigInt,
     }
 }

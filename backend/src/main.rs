@@ -58,8 +58,8 @@ async fn main() -> Result<()> {
                                         pressure: mes.pressure,
                                         humidity: mes.humidity,
                                         air_quality: mes.air_quality,
-                                        bat_v: None,
-                                        bat_cap: None,
+                                        bat_v: mes.bat_voltage,
+                                        bat_cap: mes.bat_capacity,
                                     })
                                     .unwrap();
                                 }
@@ -78,10 +78,11 @@ async fn main() -> Result<()> {
                                             info.bsec_version[1],
                                             info.bsec_version[2],
                                             info.bsec_version[3]),
-                                        wifi_ssid: "".to_string(),
+                                        wifi_ssid: info.wifi_ssid.map(|b|std::str::from_utf8(&b).unwrap().to_owned()),
                                         uptime: info.uptime as i32,
-                                        report_interval: 0,
-                                        last_seen: ms_since_epoch() as i64,
+                                        report_interval: info.report_interval as i32,
+                                        sample_interval: info.sample_interval as i32,
+                                        last_seen: (ms_since_epoch()/1000) as i64,
                                     })
                                     .unwrap();
                                 }

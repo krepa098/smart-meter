@@ -40,10 +40,11 @@ pub struct DeviceInfo {
     pub device_id: i32, // unique, key
     pub fw_version: String,
     pub bsec_version: String,
-    pub wifi_ssid: String,
-    pub uptime: i32,          // ms
-    pub report_interval: i32, // ms
-    pub last_seen: i64,       // ms
+    pub wifi_ssid: Option<String>,
+    pub uptime: i32,          // s
+    pub report_interval: i32, // s
+    pub sample_interval: i32, // s
+    pub last_seen: i64,       // s
 }
 
 pub struct Db {
