@@ -37,11 +37,11 @@ impl SleepShared {
                 if let Some(dur) = next_wakeup.checked_sub(system_time()) {
                     // sleep for dur
                     unsafe {
-                        esp!(esp_idf_sys::esp_sleep_enable_timer_wakeup(
-                            dur.as_micros() as u64
-                        ))
-                        .unwrap();
-                        esp_idf_sys::esp_light_sleep_start();
+                        if esp_idf_sys::esp_sleep_enable_timer_wakeup(dur.as_micros() as u64)
+                            == esp_idf_sys::ESP_OK
+                        {
+                            esp_idf_sys::esp_light_sleep_start();
+                        }
                     };
                 }
             }

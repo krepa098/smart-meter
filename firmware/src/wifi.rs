@@ -19,6 +19,7 @@ pub struct Credentials {
 pub struct WiFi {
     wifi: Box<EspWifi<'static>>,
     sys_loop: EspSystemEventLoop,
+    ssid: Option<String<32>>,
 }
 
 impl WiFi {
@@ -29,6 +30,7 @@ impl WiFi {
         Ok(Self {
             wifi: Box::new(EspWifi::new(modem, sys_loop.clone(), None)?),
             sys_loop,
+            ssid: None,
         })
     }
 
@@ -45,6 +47,7 @@ impl WiFi {
             password: credentials.pw.clone(),
             channel: None, // TODO: cache to reconnect faster?
         };
+        self.ssid = Some(credentials.ssid.to_owned());
         self.wifi
             .set_configuration(&Configuration::Client(client_config))?;
 
@@ -68,7 +71,7 @@ impl WiFi {
     }
 
     pub fn connect_blocking(&mut self) -> Result<()> {
-        if !self.is_started()? || self.is_connected()? {
+        if !self.is_started() || self.is_connected() {
             return Ok(());
         }
 
@@ -94,11 +97,12 @@ impl WiFi {
 
             std::thread::sleep(Duration::from_secs(5));
         }
+
         Ok(())
     }
 
     pub fn connect(&mut self) -> Result<()> {
-        if !self.is_started()? || self.is_connected()? {
+        if !self.is_started() || self.is_connected() {
             return Ok(());
         }
 
@@ -108,13 +112,19 @@ impl WiFi {
         Ok(())
     }
 
-    pub fn is_connected(&self) -> Result<bool> {
-        Ok(self.wifi.sta_netif().get_ip_info()?.ip != Ipv4Addr::new(0, 0, 0, 0))
+    pub fn is_connected(&self) -> bool {
+        if let Ok(ip_info) = self.wifi.sta_netif().get_ip_info() {
+            return ip_info.ip != Ipv4Addr::new(0, 0, 0, 0);
+        }
+        false
     }
 
-    pub fn is_started(&self) -> Result<bool> {
-        let ret = self.wifi.is_started()?;
-        Ok(ret)
+    pub fn is_started(&self) -> bool {
+        self.wifi.is_started().unwrap_or(false)
+    }
+
+    pub fn ssid(&self) -> &Option<String<32>> {
+        &self.ssid
     }
 }
 

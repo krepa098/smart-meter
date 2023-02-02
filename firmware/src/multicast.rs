@@ -64,7 +64,7 @@ impl Client {
     }
 
     pub fn enqueue(&mut self, pkt: Packet) -> Result<()> {
-        self.queue.push(pkt).unwrap(); // TODO
+        self.queue.push(pkt).expect("queue full, dropping packet"); // TODO
         Ok(())
     }
 }

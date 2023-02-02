@@ -45,8 +45,11 @@ pub struct Measurement {
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, Protocol)]
 #[allow(unused)]
 pub struct DeviceInfo {
-    pub uptime: u64,               // seconds
-    pub firmware_version: [u8; 4], // major.minor.bugfix.misc
-    pub bsec_version: [u8; 4],     // major.minor.bugfix.misc
-    pub model: [u8; 16],           // utf8 string
+    pub uptime: u64,                 // seconds
+    pub report_interval: u64,        // seconds
+    pub sample_interval: u64,        // seconds
+    pub firmware_version: [u8; 4],   // major.minor.bugfix.misc
+    pub bsec_version: [u8; 4],       // major.minor.bugfix.misc
+    pub model: [u8; 16],             // utf8 string
+    pub wifi_ssid: Option<[u8; 32]>, // utf8 string (last connected wifi)
 }

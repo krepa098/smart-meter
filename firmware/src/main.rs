@@ -30,7 +30,7 @@ const ENV_STR: &str = include_str!("../.env");
 const MES_INTERVAL: Duration = Duration::from_secs(3);
 // const MES_INTERVAL: Duration = Duration::from_secs(50 * 60); // 5min (ulp)
 // const MES_REPORT_INTERVAL_DIV: u32 = 3; // 15min
-const MES_REPORT_INTERVAL_DIV: u32 = 20; // 1min
+const MES_REPORT_INTERVAL_DIV: u32 = 15; // 1min
 const ENABLE_WIFI: bool = true;
 
 const DEVICE_MODEL: &str = "M1S1";
@@ -59,6 +59,11 @@ fn main() -> anyhow::Result<()> {
     esp_idf_sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
 
+    std::thread::sleep(Duration::from_millis(2000));
+
+    let part = esp_idf_svc::nvs::EspDefaultNvsPartition::take()?;
+    let _nvs = esp_idf_svc::nvs::EspNvs::new(part, "default", true);
+
     let fw_version: [u8; 4] = [
         env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap_or(0),
         env!("CARGO_PKG_VERSION_MINOR").parse().unwrap_or(0),
@@ -73,8 +78,7 @@ fn main() -> anyhow::Result<()> {
     let device_id = utils::device_id()?;
     info!("Device ID: {}", device_id);
 
-    let mut model = [0; 16];
-    model[0..DEVICE_MODEL.as_bytes().len()].copy_from_slice(DEVICE_MODEL.as_bytes());
+    let model: [u8; 16] = to_array(DEVICE_MODEL.as_bytes());
 
     bsec2::init()?;
     let bsec_version = bsec2::version()?;
@@ -159,8 +163,6 @@ fn main() -> anyhow::Result<()> {
         bme680::Device::new(i2c, sda, scl)
     }?;
 
-    std::thread::sleep(Duration::from_millis(100));
-
     if bme680.chip_id_valid()? {
         info!("BME680 found");
     }
@@ -193,7 +195,7 @@ fn main() -> anyhow::Result<()> {
     led.set_color(&Color::Black);
 
     // synchronize time (UTC)
-    if wifi.is_connected()? {
+    if wifi.is_connected() {
         info!("Sync SNTP...");
         let sntp = esp_idf_svc::sntp::EspSntp::new_default()?;
         while sntp.get_sync_status() != SyncStatus::Completed {
@@ -217,6 +219,8 @@ fn main() -> anyhow::Result<()> {
     let mut report_lock = None;
     let mut next_sample_instant = None;
     let startup_time = utils::system_time();
+
+    // loop {}
 
     loop {
         if let Some(inst) = next_sample_instant {
@@ -250,14 +254,16 @@ fn main() -> anyhow::Result<()> {
             mc_client.enqueue(Packet {
                 header: Header::with_device_id(device_id),
                 payload: Payload::DeviceInfo(DeviceInfo {
-                    uptime: (utils::system_time() - startup_time).as_millis() as u64,
+                    uptime: (utils::system_time() - startup_time).as_secs() as u64,
                     firmware_version: fw_version,
                     bsec_version,
                     model,
+                    wifi_ssid: wifi.ssid().as_ref().map(|ssid| to_array(ssid.as_bytes())),
+                    report_interval: MES_INTERVAL.as_secs() * MES_REPORT_INTERVAL_DIV as u64,
+                    sample_interval: MES_INTERVAL.as_secs(),
                 }),
             })?;
 
-            println!("lock!");
             report_lock = Some(lightsleep.lock());
 
             if ENABLE_WIFI {
@@ -266,13 +272,15 @@ fn main() -> anyhow::Result<()> {
             }
         }
 
-        if wifi.is_connected()? && report_lock.is_some() {
+        if wifi.is_connected() && report_lock.is_some() {
             println!("broadcast!");
-            mc_client.broadcast_queue()?;
+            mc_client
+                .broadcast_queue()
+                .expect("Cannot transfer packets");
             report_lock = None;
 
             if ENABLE_WIFI {
-                wifi.stop()?;
+                wifi.stop().expect("Cannot stop wifi");
             }
         }
 
@@ -284,4 +292,12 @@ fn main() -> anyhow::Result<()> {
 
         lightsleep.sleep_until(next_call - Duration::from_millis(10));
     }
+}
+
+fn to_array<const N: usize>(s: &[u8]) -> [u8; N] {
+    assert!(s.len() <= N);
+
+    let mut a = [0; N];
+    a[0..s.len()].copy_from_slice(s);
+    a
 }

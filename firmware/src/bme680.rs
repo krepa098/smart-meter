@@ -267,7 +267,7 @@ impl Device {
         let mut device = Self {
             interface,
             cal: Default::default(),
-            t_offset: -3.59,
+            t_offset: -1.59,
             p_offset: 30.0,
             h_offset: 10.0,
         };
