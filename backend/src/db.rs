@@ -1,4 +1,4 @@
-use crate::schema::*;
+use crate::{schema::*, utils};
 use anyhow::Result;
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
@@ -10,7 +10,7 @@ use std::env;
 #[allow(unused)]
 pub struct NewDeviceMeasurement {
     pub device_id: i32,
-    pub timestamp: i64,
+    pub timestamp: i64,           // ms since epoch
     pub temperature: Option<f32>, // °C
     pub pressure: Option<f32>,    // hPa
     pub humidity: Option<f32>,    // percent
@@ -77,18 +77,20 @@ impl Db {
         Ok(())
     }
 
-    pub fn measurements_byte_date(
+    pub fn measurements_by_date(
         &mut self,
         dev_id: u32,
-        from_date: u64,
-        to_date: u64,
+        from_date: Option<u64>,
+        to_date: Option<u64>,
+        limit: u32,
     ) -> Result<Vec<DeviceMeasurement>> {
         use crate::schema::measurements::dsl::*;
         let res = measurements
             .filter(device_id.eq(dev_id as i32))
-            .filter(timestamp.ge(from_date as i64))
-            .filter(timestamp.le(to_date as i64))
+            .filter(timestamp.ge(from_date.unwrap_or(0) as i64))
+            .filter(timestamp.le(to_date.unwrap_or(utils::ms_since_epoch() as u64) as i64))
             .order(id.desc())
+            .limit(limit as i64)
             .load::<DeviceMeasurement>(&mut self.conn)?;
 
         Ok(res)

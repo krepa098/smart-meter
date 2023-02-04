@@ -26,8 +26,9 @@ async fn test(_db: web::Data<Arc<Mutex<Db>>>) -> impl Responder {
 #[derive(serde::Deserialize, Debug)]
 struct MeasurementsQueryByDate {
     device_id: u32,
-    from_date: u64,
-    to_date: u64,
+    from_date: Option<u64>,
+    to_date: Option<u64>,
+    limit: u32,
 }
 
 #[get("/api/measurements/by_date")]
@@ -35,8 +36,10 @@ async fn api_measurements_by_date(
     query: web::Query<MeasurementsQueryByDate>,
     db: web::Data<Arc<Mutex<Db>>>,
 ) -> io::Result<impl Responder> {
+    dbg!(&query);
     if let Ok(mut db) = db.lock() {
-        if let Ok(res) = db.measurements_byte_date(query.device_id, query.from_date, query.to_date)
+        if let Ok(res) =
+            db.measurements_by_date(query.device_id, query.from_date, query.to_date, query.limit)
         {
             return Ok(web::Json(res));
         }

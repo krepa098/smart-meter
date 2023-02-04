@@ -8,6 +8,7 @@ use tokio::signal;
 mod db;
 mod packet;
 mod schema;
+mod utils;
 mod web;
 
 fn ms_since_epoch() -> u128 {
