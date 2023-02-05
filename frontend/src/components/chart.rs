@@ -3,6 +3,7 @@ use chrono::{prelude::*, Duration};
 use gloo_console::log;
 use reqwest::header::ACCEPT;
 use std::rc::Rc;
+use utils::Stats;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;
 use yew_chart::{
@@ -102,6 +103,9 @@ impl Component for Model {
             Msg::EndDateChanged(ts_utc)
         });
 
+        // stats
+        let stats = self.datapoints.stats();
+
         // assembly measurements
         let datapoints: Vec<_> = self
             .datapoints
@@ -116,7 +120,8 @@ impl Component for Model {
         let timespan = start_date..end_date;
         let h_scale =
             Rc::new(TimeScale::new(timespan, Duration::minutes(60))) as Rc<dyn Scale<Scalar = _>>;
-        let v_scale = Rc::new(LinearScale::new(0.0..80.0, 1.0)) as Rc<dyn Scale<Scalar = _>>;
+        let v_scale =
+            Rc::new(LinearScale::new(stats.y_min..stats.y_max, 1.0)) as Rc<dyn Scale<Scalar = _>>;
         let tooltip = Rc::from(series::y_tooltip()) as Rc<dyn Tooltipper<_, _>>;
 
         // html
@@ -199,7 +204,7 @@ impl Model {
                 .map(|m| {
                     (
                         m.get("timestamp").unwrap().as_i64().unwrap(),
-                        m.get("humidity").unwrap().as_f64().unwrap() as f32,
+                        m.get("temperature").unwrap().as_f64().unwrap() as f32,
                     )
                 })
                 .collect();
