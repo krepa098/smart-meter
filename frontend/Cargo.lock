@@ -214,6 +214,7 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
  "yew",
  "yew-chart",
  "yew-router",

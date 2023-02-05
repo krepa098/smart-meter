@@ -1,13 +1,6 @@
 mod components;
 mod utils;
 
-use std::{
-    collections::HashMap,
-    net::{IpAddr, Ipv4Addr},
-    str::FromStr,
-};
-
-use reqwest::header::ACCEPT;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -24,10 +17,7 @@ enum Route {
     NotFound,
 }
 
-enum Msg {
-    AddOne,
-    Req,
-}
+enum Msg {}
 
 struct Model {
     value: i64,
@@ -42,15 +32,7 @@ impl Component for Model {
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Msg::AddOne => {
-                self.value += 1;
-                // the value has changed so we need to
-                // re-render for it to appear on the page
-                true
-            }
-            Msg::Req => true,
-        }
+        false
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
@@ -93,7 +75,7 @@ pub fn page_readings() -> Html {
         <div class="main">
             <Sidebar/>
             <div class="main-content">
-                <components::chart::Chart/>
+                <components::chart::Model/>
             </div>
         </div>
     }
