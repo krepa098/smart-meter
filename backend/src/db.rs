@@ -12,8 +12,8 @@ pub struct NewDeviceMeasurement {
     pub device_id: i32,
     pub timestamp: i64,           // ms since epoch
     pub temperature: Option<f32>, // °C
-    pub pressure: Option<f32>,    // hPa
     pub humidity: Option<f32>,    // percent
+    pub pressure: Option<f32>,    // hPa
     pub air_quality: Option<f32>, // ohm
     pub bat_v: Option<f32>,       // V
     pub bat_cap: Option<f32>,     // percent
@@ -26,8 +26,8 @@ pub struct DeviceMeasurement {
     pub device_id: i32,
     pub timestamp: i64,
     pub temperature: Option<f32>, // °C
-    pub pressure: Option<f32>,    // hPa
     pub humidity: Option<f32>,    // percent
+    pub pressure: Option<f32>,    // hPa
     pub air_quality: Option<f32>, // ohm
     pub bat_v: Option<f32>,       // V
     pub bat_cap: Option<f32>,     // percent
