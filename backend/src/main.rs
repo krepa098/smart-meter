@@ -69,12 +69,12 @@ async fn main() -> Result<()> {
                                 if let Ok(mut db) = db.lock() {
                                     db.update_device_info(&db::DeviceInfo {
                                         device_id: device_id as i32,
-                                        fw_version: format!("v{}.{}.{}.{}",
+                                        fw_version: format!("{}.{}.{}.{}",
                                             info.firmware_version[0],
                                             info.firmware_version[1],
                                             info.firmware_version[2],
                                             info.firmware_version[3]),
-                                        bsec_version: format!("v{}.{}.{}.{}",
+                                        bsec_version: format!("{}.{}.{}.{}",
                                             info.bsec_version[0],
                                             info.bsec_version[1],
                                             info.bsec_version[2],

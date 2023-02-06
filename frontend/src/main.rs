@@ -1,11 +1,12 @@
 mod components;
+mod db;
 mod utils;
 
 use yew::prelude::*;
 use yew_router::prelude::*;
 
 #[derive(Clone, Routable, PartialEq)]
-enum Route {
+pub enum Route {
     #[at("/")]
     Home,
     #[at("/devices")]
@@ -15,6 +16,11 @@ enum Route {
     #[not_found]
     #[at("/404")]
     NotFound,
+}
+
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub current_route: Route,
 }
 
 enum Msg {}
@@ -49,7 +55,7 @@ impl Component for Model {
 pub fn page_devices() -> Html {
     html! {
         <div class="main">
-            <Sidebar/>
+            <Sidebar current_route={Route::Devices}/>
             <div class="main-content">
                 <components::devices::Devices />
             </div>
@@ -61,7 +67,7 @@ pub fn page_devices() -> Html {
 pub fn page_home() -> Html {
     html! {
         <div class="main">
-            <Sidebar/>
+            <Sidebar current_route={Route::Home}/>
             <div class="main-content">
 
             </div>
@@ -73,7 +79,7 @@ pub fn page_home() -> Html {
 pub fn page_readings() -> Html {
     html! {
         <div class="main">
-            <Sidebar/>
+            <Sidebar current_route={Route::Readings}/>
             <div class="main-content">
                 <components::chart::Model/>
             </div>
@@ -82,12 +88,12 @@ pub fn page_readings() -> Html {
 }
 
 #[function_component(Sidebar)]
-pub fn sidebar() -> Html {
+pub fn sidebar(props: &Props) -> Html {
     html! {
         <div class="side-menu">
-            <a class="side-menu-item" href="/">{"⌂ Home"}</a>
-            <a class="side-menu-item" href="devices">{"🖴 Devices"}</a>
-            <a class="side-menu-item" href="readings">{"🗠 Readings"}</a>
+            <a class={format!("side-menu-item {}", if props.current_route == Route::Home { "side-menu-item-active" } else {""}  )} href="/">{"⌂ Home"}</a>
+            <a class={format!("side-menu-item {}", if props.current_route == Route::Devices { "side-menu-item-active" } else {""}  )} href="devices">{"🖴 Devices"}</a>
+            <a class={format!("side-menu-item {}", if props.current_route == Route::Readings { "side-menu-item-active" } else {""}  )} href="readings">{"🗠 Readings"}</a>
         </div>
     }
 }

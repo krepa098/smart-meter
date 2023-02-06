@@ -1,4 +1,4 @@
-use crate::utils;
+use crate::{db, utils};
 use chrono::{prelude::*, Duration};
 use gloo_console::log;
 use reqwest::header::ACCEPT;
@@ -134,32 +134,31 @@ impl Component for Model {
                     <input type="datetime-local" onchange={ts_to_cb} id="start" name="trip-start" value={ts_to}/>
                 </div>
                     <svg class="chart" viewBox={format!("0 0 {} {}", WIDTH, HEIGHT)} preserveAspectRatio="none">
-                    <Series<i64, f32>
-                        series_type={Type::Line}
-                        name="some-series"
-                        data={datapoints}
-                        horizontal_scale={Rc::clone(&h_scale)}
-                        horizontal_scale_step={Duration::hours(2).num_milliseconds()}
-                        tooltipper={Rc::clone(&tooltip)}
-                        vertical_scale={Rc::clone(&v_scale)}
-                        x={MARGIN} y={MARGIN} width={WIDTH - (MARGIN * 2.0)} height={HEIGHT - (MARGIN * 2.0)} />
+                        <Series<i64, f32>
+                            series_type={Type::Line}
+                            name="some-series"
+                            data={datapoints}
+                            horizontal_scale={Rc::clone(&h_scale)}
+                            horizontal_scale_step={Duration::hours(2).num_milliseconds()}
+                            tooltipper={Rc::clone(&tooltip)}
+                            vertical_scale={Rc::clone(&v_scale)}
+                            x={MARGIN} y={MARGIN} width={WIDTH - (MARGIN * 2.0)} height={HEIGHT - (MARGIN * 2.0)} />
 
-                    <Axis<f32>
-                        name="Temperature °C"
-                        orientation={Orientation::Left}
-                        scale={Rc::clone(&v_scale)}
-                        x1={MARGIN} y1={MARGIN} xy2={HEIGHT - MARGIN}
-                        tick_len={TICK_LENGTH}
-                        title={"Temperature °C".to_string()} />
+                        <Axis<f32>
+                            name="Temperature °C"
+                            orientation={Orientation::Left}
+                            scale={Rc::clone(&v_scale)}
+                            x1={MARGIN} y1={MARGIN} xy2={HEIGHT - MARGIN}
+                            tick_len={TICK_LENGTH}
+                            title={"Temperature °C".to_string()} />
 
-                    <Axis<i64>
-                        name="Time"
-                        orientation={Orientation::Bottom}
-                        scale={Rc::clone(&h_scale)}
-                        x1={MARGIN} y1={HEIGHT - MARGIN} xy2={WIDTH - MARGIN}
-                        tick_len={TICK_LENGTH}
-                        title={"Time".to_string()} />
-
+                        <Axis<i64>
+                            name="Time"
+                            orientation={Orientation::Bottom}
+                            scale={Rc::clone(&h_scale)}
+                            x1={MARGIN} y1={HEIGHT - MARGIN} xy2={WIDTH - MARGIN}
+                            tick_len={TICK_LENGTH}
+                            title={"Time".to_string()} />
                     </svg>
             </div>
         }
@@ -195,18 +194,13 @@ impl Model {
                 .send()
                 .await
                 .unwrap()
-                .json::<Vec<serde_json::Map<String, serde_json::Value>>>()
+                .json::<Vec<db::DeviceMeasurement>>()
                 .await
                 .unwrap();
 
             let datapoints: Vec<_> = resp
                 .iter()
-                .map(|m| {
-                    (
-                        m.get("timestamp").unwrap().as_i64().unwrap(),
-                        m.get("temperature").unwrap().as_f64().unwrap() as f32,
-                    )
-                })
+                .map(|m| (m.timestamp, m.temperature.unwrap_or(f32::NAN)))
                 .collect();
 
             link.send_message(Msg::DatapointsReceived(datapoints));

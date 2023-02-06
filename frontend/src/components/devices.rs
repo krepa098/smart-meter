@@ -3,7 +3,7 @@ use std::time::Duration;
 use reqwest::header::ACCEPT;
 use yew::{function_component, html, use_state};
 
-use crate::utils;
+use crate::{db, utils};
 
 #[function_component(Devices)]
 pub fn device_list() -> Html {
@@ -24,7 +24,7 @@ pub fn device_list() -> Html {
                     .send()
                     .await
                     .unwrap()
-                    .json::<Vec<serde_json::Map<String, serde_json::Value>>>()
+                    .json::<Vec<db::DeviceInfo>>()
                     .await
                     .unwrap();
                 devices.set(Some(resp));
@@ -41,7 +41,7 @@ pub fn device_list() -> Html {
                 let mut measurements = std::collections::HashMap::new();
 
                 for dev in devices.as_ref().unwrap() {
-                    let id = dev.get("device_id").unwrap().as_u64().unwrap();
+                    let id = dev.device_id;
                     let resp = client
                         .get("http://127.0.0.1:8081/api/measurements/by_date")
                         .query(&[
@@ -52,7 +52,7 @@ pub fn device_list() -> Html {
                         .send()
                         .await
                         .unwrap()
-                        .json::<Vec<serde_json::Map<String, serde_json::Value>>>()
+                        .json::<Vec<db::DeviceMeasurement>>()
                         .await
                         .unwrap();
 
@@ -68,15 +68,19 @@ pub fn device_list() -> Html {
         Some(devices) => devices
             .iter()
             .map(|dev| {
-                let device_id = dev.get("device_id").unwrap().as_u64().unwrap();
-                let last_seen = utils::duration_since_epoch(dev.get("last_seen").unwrap().as_u64().unwrap());
+                let device_id = dev.device_id;
+                let last_seen = utils::duration_since_epoch(dev.last_seen as u64);
                 let is_online = last_seen.as_secs() < 60 *15;
-                let uptime = humantime::format_duration(Duration::from_secs(dev.get("uptime").unwrap().as_i64().unwrap() as u64));
-                let report_interval = humantime::format_duration(Duration::from_secs(dev.get("report_interval").unwrap().as_i64().unwrap() as u64));
-                let sample_interval = humantime::format_duration(Duration::from_secs(dev.get("sample_interval").unwrap().as_i64().unwrap() as u64));
+                let uptime = humantime::format_duration(Duration::from_secs(dev.uptime as u64));
+                let report_interval = humantime::format_duration(Duration::from_secs(dev.report_interval as u64));
+                let sample_interval = humantime::format_duration(Duration::from_secs(dev.sample_interval as u64));
                 let bat_cap_str = if let Some(measurements) = latest_device_measurements.as_ref() {
-                    format!("{:.0}%", measurements.get(&device_id).unwrap()[0].get("bat_cap").unwrap().as_f64().unwrap())  
+                    format!("{:.0}%", measurements.get(&device_id).unwrap()[0].bat_cap.unwrap_or(f32::NAN))  
                 } else { "N/A".to_owned() };
+                let wifi = match  dev.wifi_ssid.as_ref() {
+                    Some(wifi) => wifi.to_string(),
+                    None => "N/A".to_string(),
+                };
 
                 html! {
                     <div class="border-rounded card">
@@ -92,11 +96,11 @@ pub fn device_list() -> Html {
                             } else {
                                 <div class="card-item">{"Online"}</div><div>{"🔴"}</div>
                             }
-                            <div class="card-item">{"Device ID"}</div><div>{dev.get("device_id").unwrap()}</div>
-                            <div class="card-item">{"Firmware"}</div><div>{dev.get("fw_version").unwrap().as_str().unwrap()}</div>
-                            <div class="card-item">{"BSEC"}</div><div>{dev.get("bsec_version").unwrap().as_str().unwrap()}</div>
+                            <div class="card-item">{"Device ID"}</div><div>{dev.device_id}</div>
+                            <div class="card-item">{"Firmware"}</div><div>{dev.fw_version.to_string()}</div>
+                            <div class="card-item">{"BSEC"}</div><div>{dev.bsec_version.to_string()}</div>
                             <div class="card-item">{"Battery"}</div><div>{bat_cap_str}</div>
-                            <div class="card-item">{"WiFi"}</div><div>{dev.get("wifi_ssid").unwrap().as_str().unwrap()}</div>
+                            <div class="card-item">{"WiFi"}</div><div>{wifi}</div>
                             <div class="card-item">{"Report Interval"}</div><div>{report_interval}</div>
                             <div class="card-item">{"Sample Interval"}</div><div>{sample_interval}</div>
 

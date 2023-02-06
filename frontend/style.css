@@ -1,9 +1,9 @@
 :root {
-    --bg-color: #F5F5F5;
+    --bg-color: #005eaa;
     --border-color: #1D3557;
-    --fg0: #F1FAEE;
-    --fg1: #A8DADC;
-    --fg2: #457B9D;
+    --fg0: #007ee6;
+    --fg1: #ffffff;
+    --fg2: #dddddd;
     --accent: #E63946;
 }
 
@@ -71,7 +71,7 @@ button:hover {
 }
 
 .card {
-    background-color: var(--fg1);
+    background-color: var(--fg2);
     width: 250px;
     padding: 20px;
     display: grid;
@@ -99,6 +99,12 @@ hr {
     width: 100%;
 }
 
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
 .card-content {
     grid-area: content;
     display: grid;
@@ -115,6 +121,7 @@ hr {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
+    grid-gap: 10px;
     margin: 0px;
     gap: 5px;
     grid-template-areas:
@@ -127,8 +134,8 @@ hr {
     display: grid;
     grid-template-columns: 1fr;
     /* grid-template-rows: auto 1fr; */
-    grid-auto-rows: 40px;
-    gap: 2px;
+    grid-auto-rows: 60px;
+    gap: 0px;
     background-color: var(--bg-color);
     margin: 0;
 }
@@ -140,8 +147,9 @@ hr {
 .side-menu-item {
     box-sizing: border-box;
     height: 100%;
-    border: var(--fg2) solid 1px;
-    background-color: var(--fg0);
+    width: 100%;
+    border-bottom: var(--fg2) solid 1px;
+    background-color: var(bg-color);
     display: flex;
     align-items: center;
     justify-content: left;
@@ -149,10 +157,15 @@ hr {
     cursor: pointer;
     color: black;
     text-decoration: none;
+    color: white;
+}
+
+.side-menu-item-active {
+    background-color: var(--fg0);
 }
 
 .side-menu-item:hover {
-    background-color: var(--fg1);
+    background-color: var(--fg0);
 }
 
 .vfill {

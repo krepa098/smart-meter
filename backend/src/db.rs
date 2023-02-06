@@ -24,7 +24,7 @@ pub struct NewDeviceMeasurement {
 pub struct DeviceMeasurement {
     pub id: i32,
     pub device_id: i32,
-    pub timestamp: i64,
+    pub timestamp: i64,           // ms since epoch
     pub temperature: Option<f32>, // °C
     pub humidity: Option<f32>,    // percent
     pub pressure: Option<f32>,    // hPa

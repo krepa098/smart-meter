@@ -211,6 +211,7 @@ dependencies = [
  "humantime",
  "js-sys",
  "reqwest",
+ "serde",
  "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
