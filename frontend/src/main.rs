@@ -54,10 +54,13 @@ impl Component for Model {
 #[function_component(PageDevices)]
 pub fn page_devices() -> Html {
     html! {
-        <div class="main">
-            <Sidebar current_route={Route::Devices}/>
-            <div class="main-content">
-                <components::devices::Devices />
+        <div class="container-fluid">
+            <div class="row">
+                <Sidebar current_route={Route::Devices}/>
+                <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                    <h1 class="page-header">{"Devices"}</h1>
+                    <components::devices::Devices />
+                </div>
             </div>
         </div>
     }
@@ -66,10 +69,12 @@ pub fn page_devices() -> Html {
 #[function_component(PageHome)]
 pub fn page_home() -> Html {
     html! {
-        <div class="main">
-            <Sidebar current_route={Route::Home}/>
-            <div class="main-content">
-
+        <div class="container-fluid">
+            <div class="row">
+                <Sidebar current_route={Route::Home}/>
+                <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                    <h1 class="page-header">{"Home"}</h1>
+                </div>
             </div>
         </div>
     }
@@ -78,10 +83,15 @@ pub fn page_home() -> Html {
 #[function_component(PageReadings)]
 pub fn page_readings() -> Html {
     html! {
-        <div class="main">
-            <Sidebar current_route={Route::Readings}/>
-            <div class="main-content">
-                <components::chart::Model/>
+        <div class="container-fluid">
+            <div class="row">
+                <Sidebar current_route={Route::Readings}/>
+                <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                    <h1 class="page-header">{"Readings"}</h1>
+                    <div class="box-center">
+                        <components::chart::Model/>
+                    </div>
+                </div>
             </div>
         </div>
     }
@@ -90,10 +100,12 @@ pub fn page_readings() -> Html {
 #[function_component(Sidebar)]
 pub fn sidebar(props: &Props) -> Html {
     html! {
-        <div class="side-menu">
-            <a class={format!("side-menu-item {}", if props.current_route == Route::Home { "side-menu-item-active" } else {""}  )} href="/">{"⌂ Home"}</a>
-            <a class={format!("side-menu-item {}", if props.current_route == Route::Devices { "side-menu-item-active" } else {""}  )} href="devices">{"🖴 Devices"}</a>
-            <a class={format!("side-menu-item {}", if props.current_route == Route::Readings { "side-menu-item-active" } else {""}  )} href="readings">{"🗠 Readings"}</a>
+        <div class="col-sm-3 col-md-2 sidebar">
+            <ul class="nav nav-sidebar">
+                <li class={if props.current_route == Route::Home { "active" } else {""}}><a href="/">{"⌂ Home"}</a></li>
+                <li class={if props.current_route == Route::Devices { "active" } else {""}}><a href="devices">{"🖴 Devices"}</a></li>
+                <li class={if props.current_route == Route::Readings { "active" } else {""}}><a href="readings">{"🗠 Readings"}</a></li>
+            </ul>
         </div>
     }
 }

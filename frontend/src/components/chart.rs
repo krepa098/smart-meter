@@ -13,10 +13,10 @@ use yew_chart::{
     time_axis_scale::TimeScale,
 };
 
-const WIDTH: f32 = 533.0;
-const HEIGHT: f32 = 300.0;
+const WIDTH: f32 = 400.0;
+const HEIGHT: f32 = 400.0;
 const MARGIN: f32 = 50.0;
-const TICK_LENGTH: f32 = 10.0;
+const TICK_LENGTH: f32 = 15.0;
 
 pub enum Msg {
     StartDateChanged(DateTime<Utc>),
@@ -103,63 +103,54 @@ impl Component for Model {
             Msg::EndDateChanged(ts_utc)
         });
 
-        // stats
-        let stats = self.datapoints.stats();
+        // // stats
+        // let stats = self.datapoints.stats();
 
-        // assembly measurements
-        let datapoints: Vec<_> = self
-            .datapoints
-            .iter()
-            .map(|(x, y)| (*x, *y, None))
-            .collect();
-        let datapoints = Rc::new(datapoints);
+        // // assembly measurements
+        // let datapoints: Vec<_> = self
+        //     .datapoints
+        //     .iter()
+        //     .map(|(x, y)| (*x, *y, None))
+        //     .collect();
+        // let datapoints = Rc::new(datapoints);
 
-        // axis setup
-        let end_date = self.ts_to;
-        let start_date = self.ts_from;
-        let timespan = start_date..end_date;
-        let h_scale =
-            Rc::new(TimeScale::new(timespan, Duration::minutes(60))) as Rc<dyn Scale<Scalar = _>>;
-        let v_scale =
-            Rc::new(LinearScale::new(stats.y_min..stats.y_max, 1.0)) as Rc<dyn Scale<Scalar = _>>;
-        let tooltip = Rc::from(series::y_tooltip()) as Rc<dyn Tooltipper<_, _>>;
+        // // axis setup
+        // let end_date = self.ts_to;
+        // let start_date = self.ts_from;
+        // let timespan = start_date..end_date;
+        // let h_scale =
+        //     Rc::new(TimeScale::new(timespan, Duration::minutes(60))) as Rc<dyn Scale<Scalar = _>>;
+        // let v_scale =
+        //     Rc::new(LinearScale::new(stats.y_min..stats.y_max, 1.0)) as Rc<dyn Scale<Scalar = _>>;
+        // let tooltip = Rc::from(series::y_tooltip()) as Rc<dyn Tooltipper<_, _>>;
 
         // html
         html! {
-            <div>
-                <div>
-                    <label>{"From: "}</label>
-                    <input type="datetime-local" onchange={ts_from_cb} id="start" name="trip-start" value={ts_from}/>
-                    <label>{"To: "}</label>
-                    <input type="datetime-local" onchange={ts_to_cb} id="start" name="trip-start" value={ts_to}/>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">{"Temperature"}</h3>
                 </div>
-                    <svg class="chart" viewBox={format!("0 0 {} {}", WIDTH, HEIGHT)} preserveAspectRatio="none">
-                        <Series<i64, f32>
-                            series_type={Type::Line}
-                            name="some-series"
-                            data={datapoints}
-                            horizontal_scale={Rc::clone(&h_scale)}
-                            horizontal_scale_step={Duration::hours(2).num_milliseconds()}
-                            tooltipper={Rc::clone(&tooltip)}
-                            vertical_scale={Rc::clone(&v_scale)}
-                            x={MARGIN} y={MARGIN} width={WIDTH - (MARGIN * 2.0)} height={HEIGHT - (MARGIN * 2.0)} />
-
-                        <Axis<f32>
-                            name="Temperature °C"
-                            orientation={Orientation::Left}
-                            scale={Rc::clone(&v_scale)}
-                            x1={MARGIN} y1={MARGIN} xy2={HEIGHT - MARGIN}
-                            tick_len={TICK_LENGTH}
-                            title={"Temperature °C".to_string()} />
-
-                        <Axis<i64>
-                            name="Time"
-                            orientation={Orientation::Bottom}
-                            scale={Rc::clone(&h_scale)}
-                            x1={MARGIN} y1={HEIGHT - MARGIN} xy2={WIDTH - MARGIN}
-                            tick_len={TICK_LENGTH}
-                            title={"Time".to_string()} />
-                    </svg>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <span class="input-group-addon" id="basic-addon3">{"From"}</span>
+                                <input type="datetime-local" onchange={ts_from_cb} class="form-control" value={ts_from}/>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <span class="input-group-addon" id="basic-addon3">{"To"}</span>
+                                <input type="datetime-local" onchange={ts_to_cb} class="form-control" value={ts_to}/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <SimpleChart ylabel={"Temperature °C"} datapoints={self.datapoints.clone()}/>
+                        </div>
+                    </div>
+                </div>
             </div>
         }
     }
@@ -205,5 +196,76 @@ impl Model {
 
             link.send_message(Msg::DatapointsReceived(datapoints));
         });
+    }
+}
+
+#[derive(Properties, PartialEq)]
+pub struct ChartProps {
+    ylabel: String,
+    datapoints: Vec<(i64, f32)>,
+}
+
+#[function_component(SimpleChart)]
+fn simple_chart(props: &ChartProps) -> Html {
+    if !props.datapoints.is_empty() {
+        // stats
+        let stats = props.datapoints.stats();
+
+        // assembly measurements
+        let datapoints: Vec<_> = props
+            .datapoints
+            .iter()
+            .map(|(x, y)| (*x, *y, None))
+            .collect();
+        let datapoints = Rc::new(datapoints);
+
+        // axis setup
+        let start_date = utils::utc_from_millis(stats.x_min);
+        let end_date = utils::utc_from_millis(stats.x_max);
+        let duration = end_date - start_date;
+
+        let timespan = start_date..end_date;
+        let h_scale = Rc::new(TimeScale::new(timespan, duration / 5)) as Rc<dyn Scale<Scalar = _>>;
+        let v_scale =
+            Rc::new(LinearScale::new(stats.y_min..stats.y_max, 1.0)) as Rc<dyn Scale<Scalar = _>>;
+        let tooltip = Rc::from(series::y_tooltip()) as Rc<dyn Tooltipper<_, _>>;
+
+        html! {
+            <div>
+                <svg class="chart" viewBox={format!("0 0 {} {}", WIDTH, HEIGHT)} preserveAspectRatio="none">
+                    <Series<i64, f32>
+                        series_type={Type::Line}
+                        name="some-series"
+                        data={&datapoints}
+                        horizontal_scale={Rc::clone(&h_scale)}
+                        horizontal_scale_step={Duration::days(1).num_milliseconds()}
+                        tooltipper={Rc::clone(&tooltip)}
+                        vertical_scale={Rc::clone(&v_scale)}
+                        x={MARGIN} y={MARGIN} width={WIDTH - (MARGIN * 2.0)} height={HEIGHT - (MARGIN * 2.0)} />
+
+                    <Axis<f32>
+                        name={props.ylabel.clone()}
+                        orientation={Orientation::Left}
+                        scale={Rc::clone(&v_scale)}
+                        x1={MARGIN} y1={MARGIN} xy2={HEIGHT - MARGIN}
+                        tick_len={TICK_LENGTH}
+                        title={props.ylabel.clone()} />
+
+                    <Axis<i64>
+                        name="Time"
+                        orientation={Orientation::Bottom}
+                        scale={Rc::clone(&h_scale)}
+                        x1={MARGIN} y1={HEIGHT - MARGIN} xy2={WIDTH - MARGIN}
+                        tick_len={TICK_LENGTH}
+                        title={"Time".to_string()} />
+                </svg>
+            </div>
+        }
+    } else {
+        html! {
+            <div class="chart">
+                <label>{"no data"}</label>
+            </div>
+        }
     }
 }

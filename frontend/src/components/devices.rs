@@ -70,40 +70,51 @@ pub fn device_list() -> Html {
             .map(|dev| {
                 let device_id = dev.device_id;
                 let last_seen = utils::duration_since_epoch(dev.last_seen as u64);
-                let is_online = last_seen.as_secs() < 60 *15;
+                let is_online = last_seen.as_secs() < 60 * 15;
                 let uptime = humantime::format_duration(Duration::from_secs(dev.uptime as u64));
-                let report_interval = humantime::format_duration(Duration::from_secs(dev.report_interval as u64));
-                let sample_interval = humantime::format_duration(Duration::from_secs(dev.sample_interval as u64));
+                let report_interval =
+                    humantime::format_duration(Duration::from_secs(dev.report_interval as u64));
+                let sample_interval =
+                    humantime::format_duration(Duration::from_secs(dev.sample_interval as u64));
                 let bat_cap_str = if let Some(measurements) = latest_device_measurements.as_ref() {
-                    format!("{:.0}%", measurements.get(&device_id).unwrap()[0].bat_cap.unwrap_or(f32::NAN))  
-                } else { "N/A".to_owned() };
-                let wifi = match  dev.wifi_ssid.as_ref() {
+                    format!(
+                        "{:.0}%",
+                        measurements.get(&device_id).unwrap()[0]
+                            .bat_cap
+                            .unwrap_or(f32::NAN)
+                    )
+                } else {
+                    "N/A".to_owned()
+                };
+                let wifi = match dev.wifi_ssid.as_ref() {
                     Some(wifi) => wifi.to_string(),
                     None => "N/A".to_string(),
                 };
 
                 html! {
-                    <div class="border-rounded card">
-                        <div class="card-header">
-                            <div class="card-item">{"<DeviceName>"}</div>
-                            <img src="media/m1s1.webp"/>
-                            <hr/>
-                        </div>
-                        <div class="card-content">
-                            if is_online {
-                                <div class="card-item">{"Online"}</div><div>{"🟢"}</div>
-                                <div class="card-item">{"Uptime"}</div><div>{uptime}</div>
-                            } else {
-                                <div class="card-item">{"Online"}</div><div>{"🔴"}</div>
-                            }
-                            <div class="card-item">{"Device ID"}</div><div>{dev.device_id}</div>
-                            <div class="card-item">{"Firmware"}</div><div>{dev.fw_version.to_string()}</div>
-                            <div class="card-item">{"BSEC"}</div><div>{dev.bsec_version.to_string()}</div>
-                            <div class="card-item">{"Battery"}</div><div>{bat_cap_str}</div>
-                            <div class="card-item">{"WiFi"}</div><div>{wifi}</div>
-                            <div class="card-item">{"Report Interval"}</div><div>{report_interval}</div>
-                            <div class="card-item">{"Sample Interval"}</div><div>{sample_interval}</div>
-
+                    <div class="col-xs-3">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">{"Bedroom"}</div>
+                            <div class="panel-body">
+                                <img class="center-block" src="media/m1s1.webp"/>
+                                <table class="table table-hover">
+                                    <tbody>
+                                        if is_online {
+                                            <tr><td>{"Online"}</td><td>{"🟢"}</td></tr>
+                                            <tr><td>{"Uptime"}</td><td>{uptime}</td></tr>
+                                        } else {
+                                            <tr class="warning"><td>{"Online"}</td><td>{"🔴"}</td></tr>
+                                        }
+                                        <tr><td>{"Device ID"}</td><td>{dev.device_id}</td></tr>
+                                        <tr><td>{"Firmware"}</td><td>{dev.fw_version.to_string()}</td></tr>
+                                        <tr><td>{"BSEC"}</td><td>{dev.bsec_version.to_string()}</td></tr>
+                                        <tr><td>{"Battery"}</td><td>{bat_cap_str}</td></tr>
+                                        <tr><td>{"WiFi"}</td><td>{wifi}</td></tr>
+                                        <tr><td>{"Report Interval"}</td><td>{report_interval}</td></tr>
+                                        <tr><td>{"Sample Interval"}</td><td>{sample_interval}</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 }
@@ -116,5 +127,9 @@ pub fn device_list() -> Html {
         }
     };
 
-    html! { <>{device_list}</> }
+    html! {
+        <div class="row">
+            {device_list}
+        </div>
+    }
 }

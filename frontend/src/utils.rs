@@ -9,6 +9,11 @@ pub fn duration_since_epoch(stamp_older: u64) -> Duration {
     now_since_epoch - ts
 }
 
+pub fn utc_from_millis(millis: i64) -> DateTime<Utc> {
+    let naive = chrono::NaiveDateTime::from_timestamp_millis(millis).unwrap();
+    DateTime::<Utc>::from_utc(naive, Utc)
+}
+
 // offset in hours
 pub fn timezone_offset() -> i32 {
     let offset_in_sec = Local::now().offset().local_minus_utc();
