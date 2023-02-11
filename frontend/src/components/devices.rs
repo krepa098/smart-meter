@@ -6,7 +6,7 @@ use yew::{function_component, html, use_state};
 use crate::{db, utils};
 
 #[function_component(Devices)]
-pub fn device_list() -> Html {
+pub fn device_list() -> yew::Html {
     let devices = use_state(|| None);
     let latest_device_measurements = use_state(|| None);
     let client = reqwest::Client::new();

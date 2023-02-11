@@ -1,6 +1,6 @@
 use crate::{db, utils};
-use chrono::{prelude::*, Duration};
-use gloo_console::log;
+use chrono::{prelude::*, Duration, DurationRound};
+use log::info;
 use reqwest::header::ACCEPT;
 use std::rc::Rc;
 use utils::Stats;
@@ -10,10 +10,10 @@ use yew_chart::{
     axis::{Axis, Orientation, Scale},
     linear_axis_scale::LinearScale,
     series::{self, Series, Tooltipper, Type},
-    time_axis_scale::TimeScale,
+    time_axis_scale::{Labeller, TimeScale},
 };
 
-const WIDTH: f32 = 400.0;
+const WIDTH: f32 = 900.0;
 const HEIGHT: f32 = 400.0;
 const MARGIN: f32 = 50.0;
 const TICK_LENGTH: f32 = 15.0;
@@ -86,7 +86,7 @@ impl Component for Model {
             let timestring = input.unwrap().value();
             let ts_utc: DateTime<Utc> = utils::js_ts_to_utc(&timestring);
 
-            log!("from (utc)", ts_utc.to_string());
+            info!("from (utc) {}", ts_utc.to_string());
 
             Msg::StartDateChanged(ts_utc)
         });
@@ -98,7 +98,7 @@ impl Component for Model {
             let timestring = input.unwrap().value();
             let ts_utc: DateTime<Utc> = utils::js_ts_to_utc(&timestring);
 
-            log!("to (utc)", ts_utc.to_string());
+            info!("to (utc) {}", ts_utc.to_string());
 
             Msg::EndDateChanged(ts_utc)
         });
@@ -146,8 +146,9 @@ impl Component for Model {
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-8">
+                        <div class="col-md-12">
                             <SimpleChart ylabel={"Temperature °C"} datapoints={self.datapoints.clone()}/>
+                            <svg id="chart"></svg>
                         </div>
                     </div>
                 </div>
@@ -220,19 +221,50 @@ fn simple_chart(props: &ChartProps) -> Html {
         let datapoints = Rc::new(datapoints);
 
         // axis setup
-        let start_date = utils::utc_from_millis(stats.x_min);
-        let end_date = utils::utc_from_millis(stats.x_max);
+        let start_date = utils::utc_from_millis(stats.x_min)
+            .duration_trunc(chrono::Duration::days(1))
+            .unwrap();
+        let end_date = utils::utc_from_millis(stats.x_max)
+            .duration_round(chrono::Duration::days(1))
+            .unwrap();
         let duration = end_date - start_date;
 
+        let max_div = 12;
+        let dd = chrono::Duration::hours(1);
+        let dd_div = ((duration.num_hours() / dd.num_hours()) / max_div) as i32;
         let timespan = start_date..end_date;
-        let h_scale = Rc::new(TimeScale::new(timespan, duration / 5)) as Rc<dyn Scale<Scalar = _>>;
-        let v_scale =
-            Rc::new(LinearScale::new(stats.y_min..stats.y_max, 1.0)) as Rc<dyn Scale<Scalar = _>>;
+        let h_scale = Rc::new(TimeScale::with_labeller(
+            timespan,
+            dd * dd_div,
+            Some(Rc::from(ts_labeller(duration))),
+        )) as Rc<dyn Scale<Scalar = _>>;
+        let v_scale = Rc::new(LinearScale::new(
+            stats.y_min.floor() - 1.0..stats.y_max.ceil() + 1.0,
+            1.0,
+        )) as Rc<dyn Scale<Scalar = _>>;
         let tooltip = Rc::from(series::y_tooltip()) as Rc<dyn Tooltipper<_, _>>;
 
         html! {
             <div>
                 <svg class="chart" viewBox={format!("0 0 {} {}", WIDTH, HEIGHT)} preserveAspectRatio="none">
+                    <Axis<f32>
+                        name={props.ylabel.clone()}
+                        orientation={Orientation::Left}
+                        scale={Rc::clone(&v_scale)}
+                        x1={MARGIN} y1={MARGIN} xy2={HEIGHT - MARGIN} yx2={WIDTH - MARGIN}
+                        tick_len={TICK_LENGTH}
+                        grid={true}
+                        title={props.ylabel.clone()} />
+
+                    <Axis<i64>
+                        name="Time"
+                        orientation={Orientation::Bottom}
+                        scale={Rc::clone(&h_scale)}
+                        x1={MARGIN} y1={HEIGHT - MARGIN} xy2={WIDTH - MARGIN} yx2={MARGIN}
+                        tick_len={TICK_LENGTH}
+                        grid={true}
+                        title={"Time".to_string()} />
+
                     <Series<i64, f32>
                         series_type={Type::Line}
                         name="some-series"
@@ -243,21 +275,7 @@ fn simple_chart(props: &ChartProps) -> Html {
                         vertical_scale={Rc::clone(&v_scale)}
                         x={MARGIN} y={MARGIN} width={WIDTH - (MARGIN * 2.0)} height={HEIGHT - (MARGIN * 2.0)} />
 
-                    <Axis<f32>
-                        name={props.ylabel.clone()}
-                        orientation={Orientation::Left}
-                        scale={Rc::clone(&v_scale)}
-                        x1={MARGIN} y1={MARGIN} xy2={HEIGHT - MARGIN}
-                        tick_len={TICK_LENGTH}
-                        title={props.ylabel.clone()} />
 
-                    <Axis<i64>
-                        name="Time"
-                        orientation={Orientation::Bottom}
-                        scale={Rc::clone(&h_scale)}
-                        x1={MARGIN} y1={HEIGHT - MARGIN} xy2={WIDTH - MARGIN}
-                        tick_len={TICK_LENGTH}
-                        title={"Time".to_string()} />
                 </svg>
             </div>
         }
@@ -266,6 +284,27 @@ fn simple_chart(props: &ChartProps) -> Html {
             <div class="chart">
                 <label>{"no data"}</label>
             </div>
+        }
+    }
+}
+
+fn ts_labeller(total_duration: Duration) -> impl Labeller {
+    move |ts| {
+        let utc = utils::utc_from_millis(ts);
+        let local_date_time: DateTime<Local> = utc.into();
+
+        if total_duration
+            < Duration::from_std(std::time::Duration::from_secs(60 * 60 * 24 * 2)).unwrap()
+        {
+            if local_date_time.hour() == 0
+                && local_date_time.minute() == 0
+                && local_date_time.second() == 0
+            {
+                return local_date_time.format("%d/%m").to_string();
+            }
+            return local_date_time.format("%H:%M").to_string();
+        } else {
+            return local_date_time.format("%d/%m").to_string();
         }
     }
 }
