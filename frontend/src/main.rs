@@ -99,13 +99,29 @@ pub fn page_readings() -> Html {
 
 #[function_component(Sidebar)]
 pub fn sidebar(props: &Props) -> Html {
+    let cr = &props.current_route;
+    let class_active = move |r| {
+        if *cr == r {
+            "active"
+        } else {
+            ""
+        }
+    };
+
     html! {
         <div class="col-sm-3 col-md-2 sidebar">
             <ul class="nav nav-sidebar">
-                <li class={if props.current_route == Route::Home { "active" } else {""}}><a href="/">{"⌂ Home"}</a></li>
-                <li class={if props.current_route == Route::Devices { "active" } else {""}}><a href="devices">{"🖴 Devices"}</a></li>
-                <li class={if props.current_route == Route::Readings { "active" } else {""}}><a href="readings">{"🗠 Readings"}</a></li>
+                <li class={class_active(Route::Home)}>
+                    <Link<Route> to={Route::Home}>{"⌂ Home"}</Link<Route>>
+                </li>
+                <li class={class_active(Route::Devices)}>
+                    <Link<Route> to={Route::Devices}>{"🖴 Devices"}</Link<Route>>
+                </li>
+                <li class={class_active(Route::Readings)}>
+                    <Link<Route> to={Route::Readings}>{"🗠 Readings"}</Link<Route>>
+                </li>
             </ul>
+
         </div>
     }
 }

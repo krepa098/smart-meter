@@ -76,15 +76,15 @@ impl Component for Model {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let local_ts_from: DateTime<Local> = DateTime::from(self.ts_from);
         let local_ts_to: DateTime<Local> = DateTime::from(self.ts_to);
-        let ts_from = local_ts_from.format("%Y-%m-%dT%H:%M").to_string();
-        let ts_to = local_ts_to.format("%Y-%m-%dT%H:%M").to_string();
+        let ts_from = local_ts_from.format("%Y-%m-%d").to_string();
+        let ts_to = local_ts_to.format("%Y-%m-%d").to_string();
 
         // input callback
         let ts_from_cb = ctx.link().callback(|e: Event| {
             let target: Option<web_sys::EventTarget> = e.target();
             let input = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
             let timestring = input.unwrap().value();
-            let ts_utc: DateTime<Utc> = utils::js_ts_to_utc(&timestring);
+            let ts_utc: DateTime<Utc> = utils::js_date_ts_to_utc(&timestring);
 
             info!("from (utc) {}", ts_utc.to_string());
 
@@ -96,7 +96,7 @@ impl Component for Model {
             let target: Option<web_sys::EventTarget> = e.target();
             let input = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
             let timestring = input.unwrap().value();
-            let ts_utc: DateTime<Utc> = utils::js_ts_to_utc(&timestring);
+            let ts_utc: DateTime<Utc> = utils::js_date_ts_to_utc(&timestring);
 
             info!("to (utc) {}", ts_utc.to_string());
 
@@ -135,13 +135,13 @@ impl Component for Model {
                         <div class="col-md-3">
                             <div class="input-group">
                                 <span class="input-group-addon" id="basic-addon3">{"From"}</span>
-                                <input type="datetime-local" onchange={ts_from_cb} class="form-control" value={ts_from}/>
+                                <input type="date" onchange={ts_from_cb} class="form-control" value={ts_from}/>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="input-group">
                                 <span class="input-group-addon" id="basic-addon3">{"To"}</span>
-                                <input type="datetime-local" onchange={ts_to_cb} class="form-control" value={ts_to}/>
+                                <input type="date" onchange={ts_to_cb} class="form-control" value={ts_to}/>
                             </div>
                         </div>
                     </div>
@@ -300,9 +300,9 @@ fn ts_labeller(total_duration: Duration) -> impl Labeller {
                 && local_date_time.minute() == 0
                 && local_date_time.second() == 0
             {
-                return local_date_time.format("%d/%m").to_string();
+                return local_date_time.format("%H:%M\n%d/%m").to_string();
             }
-            return local_date_time.format("%H:%M").to_string();
+            return local_date_time.format("%H:%M\n%d/%m").to_string();
         } else {
             return local_date_time.format("%d/%m").to_string();
         }

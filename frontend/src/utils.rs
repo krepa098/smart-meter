@@ -20,8 +20,19 @@ pub fn timezone_offset() -> i32 {
     offset_in_sec / 60 / 60
 }
 
-pub fn js_ts_to_utc(timestring: &str) -> DateTime<Utc> {
-    let ts = chrono::NaiveDateTime::parse_from_str(&timestring, "%Y-%m-%dT%H:%M")
+pub fn js_datetime_ts_to_utc(timestring: &str) -> DateTime<Utc> {
+    let ts = chrono::NaiveDateTime::parse_from_str(timestring, "%Y-%m-%dT%H:%M")
+        .unwrap()
+        .and_local_timezone(Local)
+        .unwrap();
+    let ts_utc: DateTime<Utc> = DateTime::from(ts);
+    ts_utc
+}
+
+pub fn js_date_ts_to_utc(timestring: &str) -> DateTime<Utc> {
+    let ts = chrono::NaiveDate::parse_from_str(timestring, "%Y-%m-%d")
+        .unwrap()
+        .and_hms_opt(0, 0, 0)
         .unwrap()
         .and_local_timezone(Local)
         .unwrap();
