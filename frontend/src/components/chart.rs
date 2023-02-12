@@ -1,7 +1,9 @@
-use crate::{db, utils};
+use crate::{
+    req::{self, MeasurementRequestResponse},
+    utils,
+};
 use chrono::{prelude::*, Duration, DurationRound};
 use log::info;
-use reqwest::header::ACCEPT;
 use std::rc::Rc;
 use utils::Stats;
 use wasm_bindgen::JsCast;
@@ -14,7 +16,7 @@ use yew_chart::{
 };
 
 const WIDTH: f32 = 900.0;
-const HEIGHT: f32 = 400.0;
+const HEIGHT: f32 = 320.0;
 const MARGIN: f32 = 50.0;
 const TICK_LENGTH: f32 = 15.0;
 
@@ -22,11 +24,11 @@ pub enum Msg {
     StartDateChanged(DateTime<Utc>),
     EndDateChanged(DateTime<Utc>),
     DeviceIDChanged(u32),
-    DatapointsReceived(Vec<(i64, f32)>),
+    MeasurementsReceived(MeasurementRequestResponse),
 }
 
 pub struct Model {
-    datapoints: Vec<(i64, f32)>,
+    measurements: Option<MeasurementRequestResponse>,
     ts_from: DateTime<Utc>,
     ts_to: DateTime<Utc>,
     device_id: u32,
@@ -42,7 +44,7 @@ impl Component for Model {
         let ts_from = Utc::now() - Duration::days(1);
 
         Self {
-            datapoints: vec![],
+            measurements: None,
             ts_from,
             ts_to,
             device_id: 396891554,
@@ -66,8 +68,8 @@ impl Component for Model {
                 self.request_datapoints(ctx);
                 false
             }
-            Msg::DatapointsReceived(dp) => {
-                self.datapoints = dp;
+            Msg::MeasurementsReceived(dp) => {
+                self.measurements = Some(dp);
                 true
             }
         }
@@ -103,27 +105,6 @@ impl Component for Model {
             Msg::EndDateChanged(ts_utc)
         });
 
-        // // stats
-        // let stats = self.datapoints.stats();
-
-        // // assembly measurements
-        // let datapoints: Vec<_> = self
-        //     .datapoints
-        //     .iter()
-        //     .map(|(x, y)| (*x, *y, None))
-        //     .collect();
-        // let datapoints = Rc::new(datapoints);
-
-        // // axis setup
-        // let end_date = self.ts_to;
-        // let start_date = self.ts_from;
-        // let timespan = start_date..end_date;
-        // let h_scale =
-        //     Rc::new(TimeScale::new(timespan, Duration::minutes(60))) as Rc<dyn Scale<Scalar = _>>;
-        // let v_scale =
-        //     Rc::new(LinearScale::new(stats.y_min..stats.y_max, 1.0)) as Rc<dyn Scale<Scalar = _>>;
-        // let tooltip = Rc::from(series::y_tooltip()) as Rc<dyn Tooltipper<_, _>>;
-
         // html
         html! {
             <div class="panel panel-default">
@@ -145,11 +126,23 @@ impl Component for Model {
                             </div>
                         </div>
                     </div>
+
                     <div class="row">
-                        <div class="col-md-12">
-                            <SimpleChart ylabel={"Temperature °C"} datapoints={self.datapoints.clone()}/>
-                            <svg id="chart"></svg>
-                        </div>
+                        if let Some(measurements) = self.measurements.as_ref() {
+                            <div class="col-md-12">
+                                <SimpleChart ylabel={"Temperature °C"} datapoints={measurements.timestamps
+                                    .iter()
+                                    .zip(&measurements.data[&(req::MeasurementType::Temperature as u32)])
+                                    .map(|(a, b)| (*a, *b))
+                                    .collect::<Vec<_>>()}/>
+                                <SimpleChart ylabel={"Humidity"} datapoints={measurements.timestamps
+                                        .iter()
+                                        .zip(&measurements.data[&(req::MeasurementType::Humidity as u32)])
+                                        .map(|(a, b)| (*a, *b))
+                                        .collect::<Vec<_>>()}/>
+                                    <svg id="chart"></svg>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -167,35 +160,21 @@ impl Model {
     pub fn request_datapoints(&self, ctx: &Context<Self>) {
         let ts_from = self.ts_from;
         let ts_to = self.ts_to;
+        // let device_id = self.device_id;
+        let device_id = 396891554;
 
         let link = ctx.link().clone();
         wasm_bindgen_futures::spawn_local(async move {
-            let client = reqwest::Client::new();
-            let from_date = ts_from;
-            let limit = 200000;
+            let resp = req::request::measurements(
+                device_id,
+                Some(ts_from),
+                None,
+                req::MeasurementType::Temperature as u32 | req::MeasurementType::Humidity as u32,
+                10000,
+            )
+            .await;
 
-            let device_id = 396891554;
-            let resp = client
-                .get("http://127.0.0.1:8081/api/measurements/by_date")
-                .query(&[
-                    ("device_id", device_id),
-                    ("from_date", from_date.timestamp_millis()),
-                    ("limit", limit),
-                ])
-                .header(ACCEPT, "application/json")
-                .send()
-                .await
-                .unwrap()
-                .json::<Vec<db::DeviceMeasurement>>()
-                .await
-                .unwrap();
-
-            let datapoints: Vec<_> = resp
-                .iter()
-                .map(|m| (m.timestamp, m.temperature.unwrap_or(f32::NAN)))
-                .collect();
-
-            link.send_message(Msg::DatapointsReceived(datapoints));
+            link.send_message(Msg::MeasurementsReceived(resp));
         });
     }
 }

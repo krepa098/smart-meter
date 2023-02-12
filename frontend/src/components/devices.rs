@@ -1,40 +1,29 @@
 use std::time::Duration;
-
-use reqwest::header::ACCEPT;
 use yew::{function_component, html, use_state};
 
-use crate::{db, utils};
+use crate::{
+    req::{self, MeasurementType},
+    utils,
+};
 
 #[function_component(Devices)]
 pub fn device_list() -> yew::Html {
     let devices = use_state(|| None);
     let latest_device_measurements = use_state(|| None);
-    let client = reqwest::Client::new();
 
     // requests
     {
         let devices = devices.clone();
-        let client = client.clone();
 
         if devices.is_none() {
             wasm_bindgen_futures::spawn_local(async move {
-                let resp = client
-                    .get("http://127.0.0.1:8081/api/devices")
-                    .header(ACCEPT, "application/json")
-                    .send()
-                    .await
-                    .unwrap()
-                    .json::<Vec<db::DeviceInfo>>()
-                    .await
-                    .unwrap();
-                devices.set(Some(resp));
+                devices.set(Some(req::request::device_infos().await));
             });
         }
     }
     {
         let devices = devices.clone();
         let latest_device_measurements = latest_device_measurements.clone();
-        let client = client.clone();
 
         if latest_device_measurements.is_none() && devices.is_some() {
             wasm_bindgen_futures::spawn_local(async move {
@@ -42,19 +31,14 @@ pub fn device_list() -> yew::Html {
 
                 for dev in devices.as_ref().unwrap() {
                     let id = dev.device_id;
-                    let resp = client
-                        .get("http://127.0.0.1:8081/api/measurements/by_date")
-                        .query(&[
-                            ("device_id", id.to_string().to_owned()),
-                            ("limit", "1".to_owned()),
-                        ])
-                        .header(ACCEPT, "application/json")
-                        .send()
-                        .await
-                        .unwrap()
-                        .json::<Vec<db::DeviceMeasurement>>()
-                        .await
-                        .unwrap();
+                    let resp = req::request::measurements(
+                        dev.device_id as u32,
+                        None,
+                        None,
+                        req::MeasurementType::All as u32,
+                        1,
+                    )
+                    .await;
 
                     measurements.insert(id, resp);
                 }
@@ -79,9 +63,7 @@ pub fn device_list() -> yew::Html {
                 let bat_cap_str = if let Some(measurements) = latest_device_measurements.as_ref() {
                     format!(
                         "{:.0}%",
-                        measurements.get(&device_id).unwrap()[0]
-                            .bat_cap
-                            .unwrap_or(f32::NAN)
+                        measurements.get(&device_id).unwrap().data[&(MeasurementType::BatCapacity as u32)][0]
                     )
                 } else {
                     "N/A".to_owned()

@@ -1,4 +1,4 @@
-use crate::{schema::*, utils};
+use crate::{req, schema::*, utils};
 use anyhow::Result;
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
@@ -82,8 +82,9 @@ impl Db {
         dev_id: u32,
         from_date: Option<u64>,
         to_date: Option<u64>,
+        measurement_type: u32,
         limit: u32,
-    ) -> Result<Vec<DeviceMeasurement>> {
+    ) -> Result<req::MeasurementRequestResponse> {
         use crate::schema::measurements::dsl::*;
         let res = measurements
             .filter(device_id.eq(dev_id as i32))
@@ -93,7 +94,56 @@ impl Db {
             .limit(limit as i64)
             .load::<DeviceMeasurement>(&mut self.conn)?;
 
-        Ok(res)
+        // filter requested measurements
+        let mut data = std::collections::HashMap::new();
+        if measurement_type & req::MeasurementType::Temperature as u32 > 0 {
+            data.insert(
+                req::MeasurementType::Temperature as u32,
+                res.iter()
+                    .map(|p| p.temperature.unwrap_or(f32::NAN))
+                    .collect(),
+            );
+        }
+        if measurement_type & req::MeasurementType::Pressure as u32 > 0 {
+            data.insert(
+                req::MeasurementType::Pressure as u32,
+                res.iter().map(|p| p.pressure.unwrap_or(f32::NAN)).collect(),
+            );
+        }
+        if measurement_type & req::MeasurementType::Humidity as u32 > 0 {
+            data.insert(
+                req::MeasurementType::Humidity as u32,
+                res.iter().map(|p| p.humidity.unwrap_or(f32::NAN)).collect(),
+            );
+        }
+        if measurement_type & req::MeasurementType::BatCapacity as u32 > 0 {
+            data.insert(
+                req::MeasurementType::BatCapacity as u32,
+                res.iter().map(|p| p.bat_cap.unwrap_or(f32::NAN)).collect(),
+            );
+        }
+        if measurement_type & req::MeasurementType::BatVoltage as u32 > 0 {
+            data.insert(
+                req::MeasurementType::BatVoltage as u32,
+                res.iter().map(|p| p.bat_v.unwrap_or(f32::NAN)).collect(),
+            );
+        }
+        if measurement_type & req::MeasurementType::AirQuality as u32 > 0 {
+            data.insert(
+                req::MeasurementType::AirQuality as u32,
+                res.iter()
+                    .map(|p| p.air_quality.unwrap_or(f32::NAN))
+                    .collect(),
+            );
+        }
+
+        let resp = req::MeasurementRequestResponse {
+            device_id: dev_id as i32,
+            timestamps: res.iter().map(|p| p.timestamp).collect(),
+            data,
+        };
+
+        Ok(resp)
     }
 
     pub fn all_measurements(&mut self) -> Result<Vec<DeviceMeasurement>> {

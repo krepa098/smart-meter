@@ -7,6 +7,7 @@ use tokio::signal;
 
 mod db;
 mod packet;
+mod req;
 mod schema;
 mod utils;
 mod web;

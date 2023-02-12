@@ -1,5 +1,5 @@
 mod components;
-mod db;
+mod req;
 mod utils;
 
 use yew::prelude::*;

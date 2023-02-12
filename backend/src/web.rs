@@ -28,6 +28,7 @@ struct MeasurementsQueryByDate {
     device_id: u32,
     from_date: Option<u64>,
     to_date: Option<u64>,
+    measurement_types: u32,
     limit: u32,
 }
 
@@ -38,9 +39,13 @@ async fn api_measurements_by_date(
 ) -> io::Result<impl Responder> {
     dbg!(&query);
     if let Ok(mut db) = db.lock() {
-        if let Ok(res) =
-            db.measurements_by_date(query.device_id, query.from_date, query.to_date, query.limit)
-        {
+        if let Ok(res) = db.measurements_by_date(
+            query.device_id,
+            query.from_date,
+            query.to_date,
+            query.measurement_types,
+            query.limit,
+        ) {
             return Ok(web::Json(res));
         }
     }
