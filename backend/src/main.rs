@@ -5,12 +5,12 @@ use anyhow::Result;
 use protocol::wire::{dgram::Pipeline, middleware};
 use tokio::signal;
 
+mod api;
 mod db;
 mod packet;
 mod req;
 mod schema;
 mod utils;
-mod web;
 
 fn ms_since_epoch() -> u128 {
     std::time::SystemTime::now()
@@ -99,6 +99,6 @@ async fn main() -> Result<()> {
         }
     });
 
-    let _ = tokio::join!(web::new_http_server(web_db), task);
+    let _ = tokio::join!(api::new_http_server(web_db), task);
     Ok(())
 }

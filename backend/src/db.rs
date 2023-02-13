@@ -1,5 +1,5 @@
 use crate::{req, schema::*, utils};
-use anyhow::Result;
+use anyhow::{bail, Result};
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
 use dotenvy::dotenv;
@@ -17,6 +17,14 @@ pub struct NewDeviceMeasurement {
     pub air_quality: Option<f32>, // ohm
     pub bat_v: Option<f32>,       // V
     pub bat_cap: Option<f32>,     // percent
+}
+
+#[derive(Debug, Default, Insertable, Queryable)]
+#[diesel(table_name=device_names)]
+#[allow(unused)]
+pub struct DeviceName {
+    pub device_id: i32,
+    pub name: String,
 }
 
 #[derive(Debug, Queryable, serde::Serialize)]
@@ -75,6 +83,27 @@ impl Db {
             .values(info)
             .execute(&mut self.conn)?;
         Ok(())
+    }
+
+    pub fn update_device_name(&mut self, device_name: &DeviceName) -> Result<()> {
+        diesel::replace_into(device_names::table)
+            .values(device_name)
+            .execute(&mut self.conn)?;
+        Ok(())
+    }
+
+    pub fn device_name(&mut self, device_id: u32) -> Result<String> {
+        use crate::schema::device_names::dsl;
+        let device_name = dsl::device_names
+            .filter(dsl::device_id.eq(device_id as i32))
+            .limit(1)
+            .load::<DeviceName>(&mut self.conn)?;
+
+        if let Some(device_name) = device_name.get(0) {
+            return Ok(device_name.name.clone());
+        }
+
+        bail!("No device name found")
     }
 
     pub fn measurements_by_date(

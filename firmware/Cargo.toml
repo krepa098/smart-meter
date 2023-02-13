@@ -35,4 +35,4 @@ dotenvy = "0.15"
 [build-dependencies]
 embuild = "0.31.0"
 anyhow = "1"
-bindgen = "0.63.0"
+bindgen = "0.64.0"

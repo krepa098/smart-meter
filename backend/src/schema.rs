@@ -1,6 +1,13 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    device_names (device_id) {
+        device_id -> Integer,
+        name -> Text,
+    }
+}
+
+diesel::table! {
     devices (device_id) {
         device_id -> Integer,
         fw_version -> Text,
@@ -28,6 +35,7 @@ diesel::table! {
 }
 
 diesel::allow_tables_to_appear_in_same_query!(
+    device_names,
     devices,
     measurements,
 );
