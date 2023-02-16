@@ -54,12 +54,12 @@ pub fn device_list() -> yew::Html {
             .map(|dev| {
                 let device_id = dev.device_id;
                 let last_seen = utils::duration_since_epoch(dev.last_seen as u64);
-                let is_online = last_seen.as_secs() < 60 * 15;
                 let uptime = humantime::format_duration(Duration::from_secs(dev.uptime as u64));
                 let report_interval =
                     humantime::format_duration(Duration::from_secs(dev.report_interval as u64));
                 let sample_interval =
                     humantime::format_duration(Duration::from_secs(dev.sample_interval as u64));
+                let is_online = last_seen < Duration::from_secs(dev.report_interval as u64) + Duration::from_secs(2*60);
                 let bat_cap_str = if let Some(measurements) = latest_device_measurements.as_ref() {
                     format!(
                         "{:.0}%",
@@ -76,7 +76,7 @@ pub fn device_list() -> yew::Html {
                 html! {
                     <div class="col-xs-3">
                         <div class="panel panel-default">
-                            <div class="panel-heading">{"Bedroom"}</div>
+                            <div class="panel-heading"><h4>{"Bedroom"}</h4></div>
                             <div class="panel-body">
                                 <img class="center-block" src="media/m1s1.webp"/>
                                 <table class="table table-hover">
