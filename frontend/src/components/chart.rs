@@ -107,9 +107,10 @@ impl Component for Model {
 
         // html
         html! {
+            <>
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">{"Temperature"}</h3>
+                    <h3 class="panel-title">{"Date"}</h3>
                 </div>
                 <div class="panel-body">
                     <div class="row">
@@ -126,26 +127,45 @@ impl Component for Model {
                             </div>
                         </div>
                     </div>
-
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">{"Temperature"}</h3>
+                </div>
+                <div class="panel-body">
                     <div class="row">
                         if let Some(measurements) = self.measurements.as_ref() {
                             <div class="col-md-12">
-                                <SimpleChart ylabel={"Temperature °C"} datapoints={measurements.timestamps
-                                    .iter()
-                                    .zip(&measurements.data[&(req::MeasurementType::Temperature as u32)])
-                                    .map(|(a, b)| (*a, *b))
-                                    .collect::<Vec<_>>()}/>
-                                <SimpleChart ylabel={"Humidity"} datapoints={measurements.timestamps
+                                <SimpleChart ylabel={"Temperature in °C"} datapoints={measurements.timestamps
                                         .iter()
-                                        .zip(&measurements.data[&(req::MeasurementType::Humidity as u32)])
+                                        .zip(&measurements.data[&(req::MeasurementType::Temperature as u32)])
                                         .map(|(a, b)| (*a, *b))
                                         .collect::<Vec<_>>()}/>
-                                    <svg id="chart"></svg>
                             </div>
                         }
                     </div>
                 </div>
             </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">{"Humidity"}</h3>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        if let Some(measurements) = self.measurements.as_ref() {
+                            <div class="col-md-12">
+                                <SimpleChart ylabel={"Humidity in %"} datapoints={measurements.timestamps
+                                        .iter()
+                                        .zip(&measurements.data[&(req::MeasurementType::Humidity as u32)])
+                                        .map(|(a, b)| (*a, *b))
+                                        .collect::<Vec<_>>()}/>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            </>
         }
     }
 
@@ -242,7 +262,7 @@ fn simple_chart(props: &ChartProps) -> Html {
                         x1={MARGIN} y1={HEIGHT - MARGIN} xy2={WIDTH - MARGIN} yx2={MARGIN}
                         tick_len={TICK_LENGTH}
                         grid={true}
-                        title={"Time".to_string()} />
+                        title={"".to_string()} />
 
                     <Series<i64, f32>
                         series_type={Type::Line}
