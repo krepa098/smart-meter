@@ -14,6 +14,10 @@ pub fn utc_from_millis(millis: i64) -> DateTime<Utc> {
     DateTime::<Utc>::from_utc(naive, Utc)
 }
 
+pub fn utc_now() -> DateTime<Utc> {
+    chrono::Utc::now()
+}
+
 // offset in hours
 pub fn timezone_offset() -> i32 {
     let offset_in_sec = Local::now().offset().local_minus_utc();

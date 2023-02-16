@@ -121,6 +121,9 @@ pub fn sidebar(props: &Props) -> Html {
                     <Link<Route> to={Route::Readings}>{"🗠 Readings"}</Link<Route>>
                 </li>
             </ul>
+            <ul class="nav nav-sidebar fix-bottom">
+            {format!("v{}.{}.{}", env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap_or(0), env!("CARGO_PKG_VERSION_MINOR").parse().unwrap_or(0), env!("CARGO_PKG_VERSION_PATCH").parse().unwrap_or(0))}
+            </ul>
 
         </div>
     }

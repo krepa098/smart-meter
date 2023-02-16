@@ -53,13 +53,15 @@ pub fn device_list() -> yew::Html {
             .iter()
             .map(|dev| {
                 let device_id = dev.device_id;
-                let last_seen = utils::duration_since_epoch(dev.last_seen as u64);
+                let last_seen = utils::utc_from_millis(dev.last_seen * 1000);
                 let uptime = humantime::format_duration(Duration::from_secs(dev.uptime as u64));
                 let report_interval =
                     humantime::format_duration(Duration::from_secs(dev.report_interval as u64));
                 let sample_interval =
                     humantime::format_duration(Duration::from_secs(dev.sample_interval as u64));
-                let is_online = last_seen < Duration::from_secs(dev.report_interval as u64) + Duration::from_secs(2*60);
+
+                let duration_since_last_report = utils::utc_now() - last_seen;
+                let is_online = duration_since_last_report < chrono::Duration::from_std(Duration::from_secs(dev.report_interval as u64) - Duration::from_secs(60)).unwrap();
                 let bat_cap_str = if let Some(measurements) = latest_device_measurements.as_ref() {
                     format!(
                         "{:.0}%",
