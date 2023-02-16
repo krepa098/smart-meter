@@ -53,7 +53,7 @@ async fn main() -> Result<()> {
                         match &packet.payload {
                             packet::Payload::Measurement(mes) => {
                                 if let Ok(mut db) = db.lock() {
-                                    db.insert_measurement(&db::NewDeviceMeasurement {
+                                    db.insert_measurement(&db::models::NewDeviceMeasurement {
                                         device_id: device_id as i32,
                                         timestamp: mes.timestamp as i64,
                                         temperature: mes.temperature,
@@ -68,7 +68,7 @@ async fn main() -> Result<()> {
                             }
                             packet::Payload::DeviceInfo(info) => {
                                 if let Ok(mut db) = db.lock() {
-                                    db.update_device_info(&db::DeviceInfo {
+                                    db.update_device_info(&db::models::DeviceInfo {
                                         device_id: device_id as i32,
                                         fw_version: format!("{}.{}.{}.{}",
                                             info.firmware_version[0],

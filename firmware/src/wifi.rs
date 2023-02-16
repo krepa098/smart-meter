@@ -89,10 +89,8 @@ impl WiFi {
                 })
             {
                 break;
-            } else {
-                if retries == 0 {
-                    bail!("Wifi did not connect or did not receive a DHCP lease");
-                }
+            } else if retries == 0 {
+                bail!("Wifi did not connect or did not receive a DHCP lease");
             }
 
             std::thread::sleep(Duration::from_secs(5));
@@ -127,87 +125,3 @@ impl WiFi {
         &self.ssid
     }
 }
-
-// pub fn setup_wifi(
-//     modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
-//     sys_loop: EspSystemEventLoop,
-//     ssid: &str,
-//     pw: &str,
-// ) -> Result<WiFi> {
-//     let mut wifi = Box::new(EspWifi::new(modem, sys_loop.clone(), None)?);
-
-//     info!("Scanning...");
-//     let info = wifi.scan()?; // sorted by strength
-
-//     info!("Wifis:");
-//     for (i, fo) in info.iter().enumerate() {
-//         info!("\t{}| {} ({})", i + 1, fo.ssid, fo.signal_strength);
-//     }
-
-//     let ap = info.iter().find(|a| a.ssid == ssid);
-
-//     if let Some(ap) = ap {
-//         let client_config = ClientConfiguration {
-//             ssid: ap.ssid.to_owned(),
-//             bssid: None,
-//             auth_method: embedded_svc::wifi::AuthMethod::WPA2Personal,
-//             password: String::from(pw),
-//             channel: Some(ap.channel),
-//             // ip_conf: Some(embedded_svc::ipv4::ClientConfiguration::DHCP(
-//             //     DHCPClientSettings {
-//             //         hostname: Some(String::from("esp32-c3")),
-//             //     },
-//             // )),
-//         };
-//         wifi.set_configuration(&Configuration::Client(client_config))?;
-
-//         info!("Starting Wifi...");
-//         wifi.start()?;
-
-//         if !WifiWait::new(&sys_loop)?
-//             .wait_with_timeout(Duration::from_secs(20), || wifi.is_started().unwrap())
-//         {
-//             bail!("Wifi did not start");
-//         }
-
-//         // if !WifiWait::new(&sys_loop)?
-//         //     .wait_with_timeout(Duration::from_secs(20), || !wifi.is_connected().unwrap())
-//         // {
-//         //     bail!("Cannot connect WiFi");
-//         // }
-
-//         let mut retries = 3;
-//         while retries > 0 {
-//             info!("Connecting with '{}'...", ssid);
-//             wifi.connect()?;
-
-//             retries -= 1;
-//             if EspNetifWait::new::<EspNetif>(wifi.sta_netif(), &sys_loop)?.wait_with_timeout(
-//                 Duration::from_secs(10),
-//                 || {
-//                     wifi.is_connected().unwrap()
-//                         && wifi.sta_netif().get_ip_info().unwrap().ip != Ipv4Addr::new(0, 0, 0, 0)
-//                 },
-//             ) {
-//                 break;
-//             } else {
-//                 if retries == 0 {
-//                     bail!("Wifi did not connect or did not receive a DHCP lease");
-//                 }
-//             }
-
-//             std::thread::sleep(Duration::from_secs(5));
-//         }
-
-//         let ip_info = wifi.sta_netif().get_ip_info()?;
-
-//         info!("Wifi DHCP info: {:?}", ip_info);
-//     }
-//     Ok(WiFi {
-//         wifi,
-//         sys_loop,
-//         ssid: ssid.into(),
-//         pw: pw.into(),
-//     })
-//     // bail!("Wifi not found")
-// }

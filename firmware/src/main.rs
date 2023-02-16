@@ -27,11 +27,14 @@ use packet::{DeviceInfo, Header, Packet, Payload};
 const ENV_STR: &str = include_str!("../.env");
 
 // const MES_INTERVAL: Duration = Duration::from_secs(30);
-const MES_INTERVAL: Duration = Duration::from_secs(3);
-// const MES_INTERVAL: Duration = Duration::from_secs(50 * 60); // 5min (ulp)
-// const MES_REPORT_INTERVAL_DIV: u32 = 3; // 15min
-const MES_REPORT_INTERVAL_DIV: u32 = 15; // 1min
+// const MES_INTERVAL: Duration = Duration::from_secs(3); // lp mode
+
+const MES_INTERVAL: Duration = Duration::from_secs(5 * 60); // 5min (ulp)
+const MES_REPORT_INTERVAL_DIV: u32 = 3; // 15min
+
+// const MES_REPORT_INTERVAL_DIV: u32 = 15; // 1min
 const ENABLE_WIFI: bool = true;
+const ENABLE_LIGHT_SLEEP: bool = true;
 
 const DEVICE_MODEL: &str = "M1S1";
 
@@ -91,35 +94,35 @@ fn main() -> anyhow::Result<()> {
 
         let _sensor_inputs = bsec2::update_subscription(&[
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Lp,
+                sample_rate: SampleRate::Ulp,
                 sensor: VirtualSensor::HeatCompensatedTemperature,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Lp,
+                sample_rate: SampleRate::Ulp,
                 sensor: VirtualSensor::HeatCompensatedHumidity,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Lp,
+                sample_rate: SampleRate::Ulp,
                 sensor: VirtualSensor::Voc,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Lp,
+                sample_rate: SampleRate::Ulp,
                 sensor: VirtualSensor::StaticIAQ,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Lp,
+                sample_rate: SampleRate::Ulp,
                 sensor: VirtualSensor::RawGas,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Lp,
+                sample_rate: SampleRate::Ulp,
                 sensor: VirtualSensor::RawPressure,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Lp,
+                sample_rate: SampleRate::Ulp,
                 sensor: VirtualSensor::RawTemperature,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Lp,
+                sample_rate: SampleRate::Ulp,
                 sensor: VirtualSensor::StabilizationStatus,
             },
         ])?;
@@ -217,58 +220,69 @@ fn main() -> anyhow::Result<()> {
 
     let mut report_interval = 0;
     let mut report_lock = None;
-    let mut next_sample_instant = None;
+    let mut next_sample_instant = Duration::ZERO;
     let startup_time = utils::system_time();
 
-    // loop {}
-
     loop {
-        if let Some(inst) = next_sample_instant {
-            utils::thread_sleep_until(inst);
-        }
-        println!("sample: {:?}", utils::system_time());
-        let (outputs, next_call) = bsec2::sensor_control(utils::system_time(), &mut bme680)?;
-        next_sample_instant = Some(next_call);
-        let (bat_cap, bat_v) = bat.capacity()?;
+        // sample?
+        if next_sample_instant.saturating_sub(utils::system_time()) == Duration::ZERO {
+            println!("sample: {:?}", utils::system_time());
+            let (outputs, next_call) = bsec2::sensor_control(utils::system_time(), &mut bme680)?;
+            next_sample_instant = next_call;
+            let (bat_cap, bat_v) = bat.capacity()?;
 
-        println!("current: {:?}, next {:?}", utils::system_time(), next_call);
-
-        mc_client.enqueue(Packet {
-            header: Header::with_device_id(device_id),
-            payload: Payload::Measurement(Measurement {
-                timestamp: utils::system_time().as_millis() as u64,
-                temperature: outputs.heat_compensated_temperature.map(|f| f.signal),
-                pressure: outputs.raw_pressure.map(|f| f.signal),
-                humidity: outputs.heat_compensated_humidity.map(|f| f.signal),
-                air_quality: outputs.static_iaq.map(|f| f.signal),
-                bat_voltage: Some(bat_v),
-                bat_capacity: Some(bat_cap),
-            }),
-        })?;
-
-        // send?
-        report_interval += 1;
-        if report_interval == MES_REPORT_INTERVAL_DIV {
-            report_interval = 0;
+            println!("current: {:?}, next {:?}", utils::system_time(), next_call);
 
             mc_client.enqueue(Packet {
                 header: Header::with_device_id(device_id),
-                payload: Payload::DeviceInfo(DeviceInfo {
-                    uptime: (utils::system_time() - startup_time).as_secs() as u64,
-                    firmware_version: fw_version,
-                    bsec_version,
-                    model,
-                    wifi_ssid: wifi.ssid().as_ref().map(|ssid| to_array(ssid.as_bytes())),
-                    report_interval: MES_INTERVAL.as_secs() * MES_REPORT_INTERVAL_DIV as u64,
-                    sample_interval: MES_INTERVAL.as_secs(),
+                payload: Payload::Measurement(Measurement {
+                    timestamp: utils::system_time().as_millis() as u64,
+                    temperature: outputs.heat_compensated_temperature.map(|f| f.signal),
+                    pressure: outputs.raw_pressure.map(|f| f.signal),
+                    humidity: outputs.heat_compensated_humidity.map(|f| f.signal),
+                    air_quality: outputs.static_iaq.map(|f| f.signal),
+                    bat_voltage: Some(bat_v),
+                    bat_capacity: Some(bat_cap),
                 }),
             })?;
 
-            report_lock = Some(lightsleep.lock());
+            // send?
+            report_interval += 1;
+            if report_interval == MES_REPORT_INTERVAL_DIV {
+                report_interval = 0;
 
-            if ENABLE_WIFI {
-                wifi.start(&credentials)?;
-                wifi.connect()?;
+                mc_client.enqueue(Packet {
+                    header: Header::with_device_id(device_id),
+                    payload: Payload::DeviceInfo(DeviceInfo {
+                        uptime: (utils::system_time() - startup_time).as_secs(),
+                        firmware_version: fw_version,
+                        bsec_version,
+                        model,
+                        wifi_ssid: wifi.ssid().as_ref().map(|ssid| to_array(ssid.as_bytes())),
+                        report_interval: MES_INTERVAL.as_secs() * MES_REPORT_INTERVAL_DIV as u64,
+                        sample_interval: MES_INTERVAL.as_secs(),
+                    }),
+                })?;
+
+                // prevent sleep until data has been transmitted
+                if ENABLE_LIGHT_SLEEP {
+                    println!(
+                        "sleep request! {:?} - {:?}",
+                        utils::system_time(),
+                        next_call
+                    );
+
+                    report_lock = Some(lightsleep.lock());
+                }
+
+                if ENABLE_WIFI {
+                    wifi.start(&credentials)?;
+                    wifi.connect()?;
+                }
+            }
+
+            if ENABLE_LIGHT_SLEEP {
+                lightsleep.sleep_until(next_call - Duration::from_millis(1));
             }
         }
 
@@ -277,20 +291,14 @@ fn main() -> anyhow::Result<()> {
             mc_client
                 .broadcast_queue()
                 .expect("Cannot transfer packets");
-            report_lock = None;
 
             if ENABLE_WIFI {
                 wifi.stop().expect("Cannot stop wifi");
             }
+
+            // drop the sleep lock, triggers sleep
+            report_lock = None;
         }
-
-        println!(
-            "sleep request! {:?} - {:?}",
-            utils::system_time(),
-            next_call
-        );
-
-        lightsleep.sleep_until(next_call - Duration::from_millis(10));
     }
 }
 

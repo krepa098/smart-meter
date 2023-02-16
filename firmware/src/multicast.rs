@@ -1,15 +1,13 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use protocol::wire::{dgram::Pipeline, middleware};
-use std::net::UdpSocket;
+use std::{net::UdpSocket, sync::Mutex};
 
 use crate::packet::Packet;
-
-const MAGIC: &str = "M1S1";
 
 pub struct Client {
     socket: UdpSocket, // 508 bytes (single fragment)
     command_socket: UdpSocket,
-    pipeline: std::sync::Mutex<Pipeline<Packet, middleware::pipeline::Default>>,
+    pipeline: Mutex<Pipeline<Packet, middleware::pipeline::Default>>,
     queue: heapless::Vec<Packet, 40>,
 }
 
@@ -64,7 +62,10 @@ impl Client {
     }
 
     pub fn enqueue(&mut self, pkt: Packet) -> Result<()> {
-        self.queue.push(pkt).expect("queue full, dropping packet"); // TODO
+        if let Err(_) = self.queue.push(pkt) {
+            self.queue.clear();
+            // TODO: error
+        };
         Ok(())
     }
 }

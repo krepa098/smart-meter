@@ -12,16 +12,11 @@ use actix_web::{
     App, HttpResponse, HttpServer, Responder,
 };
 
-use crate::db::{Db, DeviceName};
+use crate::db::{models, Db};
 
 #[get("/")]
 async fn hello(_db: web::Data<Arc<Mutex<Db>>>) -> impl Responder {
-    return HttpResponse::Ok().body("backend");
-}
-
-#[get("/test")]
-async fn test(_db: web::Data<Arc<Mutex<Db>>>) -> impl Responder {
-    return HttpResponse::Ok().body("{ \"backend\": \"hello\" }");
+    HttpResponse::Ok().body("backend")
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -87,7 +82,7 @@ async fn api_set_device_name(
     dbg!(&query);
     if let Ok(mut db) = db.lock() {
         if db
-            .update_device_name(&DeviceName {
+            .update_device_name(&models::DeviceName {
                 device_id: query.device_id as i32,
                 name: query.name.clone(),
             })
@@ -123,7 +118,6 @@ pub async fn new_http_server(db: Arc<Mutex<Db>>) -> std::io::Result<()> {
         App::new()
             .app_data(Data::new(db.clone()))
             .service(hello)
-            .service(test)
             .service(api_measurements_by_date)
             .service(api_measurements_all)
             .service(api_known_devices)
