@@ -282,7 +282,7 @@ fn main() -> anyhow::Result<()> {
             }
 
             if ENABLE_LIGHT_SLEEP {
-                lightsleep.sleep_until(next_call - Duration::from_millis(1));
+                lightsleep.sleep_until(next_call);
             }
         }
 
@@ -299,6 +299,8 @@ fn main() -> anyhow::Result<()> {
             // drop the sleep lock, triggers sleep
             report_lock = None;
         }
+
+        std::thread::sleep(Duration::from_millis(10));
     }
 }
 
