@@ -46,7 +46,7 @@ impl Component for Model {
 
     fn create(ctx: &Context<Self>) -> Self {
         let ts_to = Utc::now();
-        let ts_from = Utc::now() - Duration::days(1);
+        let ts_from = Utc::now().duration_trunc(Duration::days(1)).unwrap() - Duration::days(1);
 
         Self {
             measurements: None,
