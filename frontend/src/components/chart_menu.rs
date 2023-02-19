@@ -47,10 +47,11 @@ impl Component for Model {
                         target.unchecked_into::<HtmlInputElement>().checked(),
                     ));
                 });
+
                 html! {
                     <li>
                         <div class="submenuitem">
-                            <input type="checkbox" onchange={cbe}/><span>{desc}</span>
+                            <input type="checkbox" onchange={cbe} id={desc.to_string()}/><span><label for={desc.to_string()} class="submenulabel"><a>{desc}</a></label></span>
                         </div>
                     </li>
                 }
@@ -60,11 +61,6 @@ impl Component for Model {
         html! {
             if  ctx.props().visible {
             <ul class="nav nav-sidebar">
-                <li>
-                    <div class="submenuitem">
-                        <span>{"Data"}</span>
-                    </div>
-                </li>
                 {checkbox_list}
              </ul>
             }

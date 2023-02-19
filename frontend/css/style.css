@@ -38,5 +38,14 @@ img {
 }
 
 .submenuitem {
+    margin-left: 40px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.submenulabel {
     margin-left: 20px;
+    font-size: small;
+    cursor: pointer;
+    font-weight: normal;
 }

@@ -111,15 +111,15 @@ impl Component for Model {
         });
 
         let chart_types = [
-            ("Temperature in °C", MeasurementType::Temperature),
-            ("Humidity in %", MeasurementType::Humidity),
-            ("Pressure in hPa", MeasurementType::Pressure),
-            ("Air Quality", MeasurementType::AirQuality),
-            ("Battery Voltage in V", MeasurementType::BatVoltage),
+            ("Temperature in °C", MeasurementType::Temperature, 1.0),
+            ("Humidity in %", MeasurementType::Humidity, 1.0),
+            ("Pressure in hPa", MeasurementType::Pressure, 1.0 / 100.0),
+            ("Air Quality", MeasurementType::AirQuality, 1.0),
+            ("Battery Voltage in mV", MeasurementType::BatVoltage, 100.0),
         ];
 
         let mask = ctx.props().measurement_mask;
-        let charts_html: Vec<_> = chart_types.iter().map(|(desc, ty)| {
+        let charts_html: Vec<_> = chart_types.iter().map(|(desc, ty, scale)| {
             if mask.is_set(*ty) {
                 html! {
                     <div class="panel panel-default">
@@ -133,7 +133,7 @@ impl Component for Model {
                                         <SimpleChart ylabel={desc.to_string()} datapoints={measurements.timestamps
                                                 .iter()
                                                 .zip(&measurements.data[&(*ty as u32)])
-                                                .map(|(a, b)| (*a, *b))
+                                                .map(|(a, b)| (*a, *b * *scale))
                                                 .collect::<Vec<_>>()}/>
                                     </div>
                                 }
@@ -247,6 +247,7 @@ fn simple_chart(props: &ChartProps) -> Html {
             end_date.minute()
         );
 
+        // horizontal scale (time)
         let max_div = 12;
         let dd = chrono::Duration::hours(1);
         let dd_div = ((duration.num_hours() / dd.num_hours()) / max_div) as i32;
@@ -256,9 +257,13 @@ fn simple_chart(props: &ChartProps) -> Html {
             dd * dd_div,
             Some(Rc::from(ts_labeller(duration))),
         )) as Rc<dyn Scale<Scalar = _>>;
+
+        // vertical scale (measurements)
+        let max_div = 8;
+        let div = (stats.y_max.ceil() - stats.y_min.floor()) / max_div as f32;
         let v_scale = Rc::new(LinearScale::new(
             stats.y_min.floor() - 1.0..stats.y_max.ceil() + 1.0,
-            1.0,
+            div,
         )) as Rc<dyn Scale<Scalar = _>>;
         let tooltip = Rc::from(series::y_tooltip()) as Rc<dyn Tooltipper<_, _>>;
 
