@@ -28,20 +28,21 @@ pub struct Props {
     // series
     #[prop_or_default]
     pub on_mes_type_changed: Callback<(MeasurementType, bool)>,
+
+    #[prop_or_default]
+    pub meas_mask: MeasurementMask,
 }
 
 enum Msg {}
 
-struct Model {
-    value: i64,
-}
+struct Model {}
 
 impl Component for Model {
     type Message = Msg;
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
-        Self { value: 0 }
+        Self {}
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -49,7 +50,6 @@ impl Component for Model {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let link = ctx.link();
         html! {
             <BrowserRouter>
                 <Switch<Route> render={switch} />
@@ -104,7 +104,7 @@ pub fn page_readings() -> Html {
     html! {
         <div class="container-fluid">
             <div class="row">
-                <Sidebar current_route={Route::Readings} {on_mes_type_changed}/>
+                <Sidebar current_route={Route::Readings} {on_mes_type_changed} meas_mask={*mes_type_handle}/>
                 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
                     <h1 class="page-header">{"Readings"}</h1>
                     <div class="box-center">
@@ -138,7 +138,7 @@ pub fn sidebar(props: &Props) -> Html {
                 </li>
                 <li class={class_active(Route::Readings)}>
                     <Link<Route> to={Route::Readings}>{"🗠 Readings"}</Link<Route>>
-                    <components::chart_menu::Model visible={props.current_route==Route::Readings} on_mes_type_changed={props.on_mes_type_changed.clone()}/>
+                    <components::chart_menu::Model visible={props.current_route==Route::Readings} on_mes_mask_changed={props.on_mes_type_changed.clone()} meas_mask={props.meas_mask}/>
                 </li>
 
 

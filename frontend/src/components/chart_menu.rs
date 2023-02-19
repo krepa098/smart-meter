@@ -1,4 +1,4 @@
-use crate::req::MeasurementType;
+use crate::req::{MeasurementMask, MeasurementType};
 use log::info;
 use wasm_bindgen::JsCast;
 use web_sys::{EventTarget, HtmlInputElement};
@@ -12,7 +12,8 @@ pub struct Props {
     #[prop_or_default]
     pub visible: bool,
 
-    pub on_mes_type_changed: Callback<(MeasurementType, bool)>,
+    pub on_mes_mask_changed: Callback<(MeasurementType, bool)>,
+    pub meas_mask: MeasurementMask,
 }
 
 pub struct Model {}
@@ -35,10 +36,12 @@ impl Component for Model {
             (" Battery Voltage", MeasurementType::BatVoltage),
         ];
 
+        let meas_mask = ctx.props().meas_mask;
+
         let checkbox_list: Vec<_> = mes_types
             .iter()
             .map(|(desc, ty)| {
-                let cb = ctx.props().on_mes_type_changed.clone();
+                let cb = ctx.props().on_mes_mask_changed.clone();
                 let mes_type = *ty;
                 let cbe = Callback::from(move |e: Event| {
                     let target: EventTarget = e.target().unwrap();
@@ -51,7 +54,7 @@ impl Component for Model {
                 html! {
                     <li>
                         <div class="submenuitem">
-                            <input type="checkbox" onchange={cbe} id={desc.to_string()}/><span><label for={desc.to_string()} class="submenulabel"><a>{desc}</a></label></span>
+                            <input type="checkbox" onchange={cbe} id={desc.to_string()} checked={meas_mask.is_set(*ty)}/><span><label for={desc.to_string()} class="submenulabel"><a>{desc}</a></label></span>
                         </div>
                     </li>
                 }

@@ -26,7 +26,7 @@ pub enum MeasurementType {
     AirQuality = 1 << 5,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(unused)]
 pub struct MeasurementMask(u32);
 
@@ -44,6 +44,12 @@ impl MeasurementMask {
     }
 
     pub const ALL: Self = Self(0xFFFFFFFF);
+}
+
+impl Default for MeasurementMask {
+    fn default() -> Self {
+        Self(1)
+    }
 }
 
 #[derive(Debug, serde::Deserialize)]
