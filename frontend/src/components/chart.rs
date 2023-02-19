@@ -195,9 +195,7 @@ impl Model {
                 device_id,
                 Some(ts_from),
                 None,
-                req::MeasurementType::Temperature as u32
-                    | req::MeasurementType::Humidity as u32
-                    | req::MeasurementType::BatVoltage as u32,
+                req::MeasurementMask::ALL,
                 10000,
             )
             .await;

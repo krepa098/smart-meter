@@ -35,7 +35,7 @@ pub fn device_list() -> yew::Html {
                         dev.device_id as u32,
                         None,
                         None,
-                        req::MeasurementType::All as u32,
+                        req::MeasurementMask::ALL,
                         1,
                     )
                     .await;

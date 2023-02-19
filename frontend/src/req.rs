@@ -24,7 +24,6 @@ pub enum MeasurementType {
     BatCapacity = 1 << 3,
     BatVoltage = 1 << 4,
     AirQuality = 1 << 5,
-    All = 0xFFFFFFFF,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -43,6 +42,8 @@ impl MeasurementMask {
             self.0 &= !(other as u32);
         }
     }
+
+    pub const ALL: Self = Self(0xFFFFFFFF);
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -60,13 +61,13 @@ pub mod request {
     use chrono::{DateTime, Utc};
     use reqwest::header::ACCEPT;
 
-    use super::{DeviceInfo, MeasurementRequestResponse};
+    use super::{DeviceInfo, MeasurementMask, MeasurementRequestResponse};
 
     pub async fn measurements(
         device_id: u32,
         ts_from: Option<DateTime<Utc>>,
         ts_to: Option<DateTime<Utc>>,
-        measurement_types: u32,
+        measurement_mask: MeasurementMask,
         limit: i64,
     ) -> MeasurementRequestResponse {
         let client = reqwest::Client::new();
@@ -74,7 +75,7 @@ pub mod request {
         let mut query = vec![
             ("device_id", device_id as i64),
             ("limit", limit),
-            ("measurement_types", measurement_types as i64),
+            ("measurement_types", measurement_mask.0 as i64),
         ];
         if let Some(date) = ts_from {
             query.push(("from_date", date.timestamp_millis()))
