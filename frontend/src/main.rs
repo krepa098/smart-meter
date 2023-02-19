@@ -2,8 +2,11 @@ mod components;
 mod req;
 mod utils;
 
+use log::info;
 use yew::prelude::*;
 use yew_router::prelude::*;
+
+use crate::req::{MeasurementMask, MeasurementType};
 
 #[derive(Clone, Routable, PartialEq)]
 pub enum Route {
@@ -21,6 +24,10 @@ pub enum Route {
 #[derive(Properties, PartialEq)]
 pub struct Props {
     pub current_route: Route,
+
+    // series
+    #[prop_or_default]
+    pub on_mes_type_changed: Callback<(MeasurementType, bool)>,
 }
 
 enum Msg {}
@@ -82,14 +89,26 @@ pub fn page_home() -> Html {
 
 #[function_component(PageReadings)]
 pub fn page_readings() -> Html {
+    let mes_type_handle = use_state_eq(MeasurementMask::default);
+
+    let on_mes_type_changed: Callback<(MeasurementType, bool)> = {
+        let handle = mes_type_handle.clone();
+        Callback::from(move |(mes_type, active)| {
+            let mut ret = *handle;
+            ret.set(mes_type, active);
+            handle.set(ret);
+            info!("Mes type changed {:?}", ret);
+        })
+    };
+
     html! {
         <div class="container-fluid">
             <div class="row">
-                <Sidebar current_route={Route::Readings}/>
+                <Sidebar current_route={Route::Readings} {on_mes_type_changed}/>
                 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
                     <h1 class="page-header">{"Readings"}</h1>
                     <div class="box-center">
-                        <components::chart::Model/>
+                        <components::chart::Model measurement_mask={*mes_type_handle}/>
                     </div>
                 </div>
             </div>
@@ -119,8 +138,12 @@ pub fn sidebar(props: &Props) -> Html {
                 </li>
                 <li class={class_active(Route::Readings)}>
                     <Link<Route> to={Route::Readings}>{"🗠 Readings"}</Link<Route>>
+                    <components::chart_menu::Model visible={props.current_route==Route::Readings} on_mes_type_changed={props.on_mes_type_changed.clone()}/>
                 </li>
+
+
             </ul>
+
             <ul class="nav nav-sidebar fix-bottom">
             {format!("v{}.{}.{}", env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap_or(0), env!("CARGO_PKG_VERSION_MINOR").parse().unwrap_or(0), env!("CARGO_PKG_VERSION_PATCH").parse().unwrap_or(0))}
             </ul>

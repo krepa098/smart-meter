@@ -15,7 +15,7 @@ pub struct DeviceInfo {
 }
 
 #[allow(unused)]
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, Clone, Copy)]
 #[repr(u32)]
 pub enum MeasurementType {
     Temperature = 1 << 0,
@@ -25,6 +25,24 @@ pub enum MeasurementType {
     BatVoltage = 1 << 4,
     AirQuality = 1 << 5,
     All = 0xFFFFFFFF,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[allow(unused)]
+pub struct MeasurementMask(u32);
+
+impl MeasurementMask {
+    pub fn is_set(&self, other: MeasurementType) -> bool {
+        self.0 & other as u32 > 0
+    }
+
+    pub fn set(&mut self, other: MeasurementType, active: bool) {
+        if active {
+            self.0 |= other as u32;
+        } else {
+            self.0 &= !(other as u32);
+        }
+    }
 }
 
 #[derive(Debug, serde::Deserialize)]

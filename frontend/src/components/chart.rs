@@ -1,5 +1,5 @@
 use crate::{
-    req::{self, MeasurementRequestResponse},
+    req::{self, MeasurementMask, MeasurementRequestResponse, MeasurementType},
     utils,
 };
 use chrono::{prelude::*, Duration, DurationRound};
@@ -34,10 +34,15 @@ pub struct Model {
     device_id: u32,
 }
 
+#[derive(Properties, PartialEq)]
+pub struct ModelProps {
+    pub measurement_mask: MeasurementMask,
+}
+
 impl Component for Model {
     type Message = Msg;
 
-    type Properties = ();
+    type Properties = ModelProps;
 
     fn create(ctx: &Context<Self>) -> Self {
         let ts_to = Utc::now();
@@ -105,6 +110,42 @@ impl Component for Model {
             Msg::EndDateChanged(ts_utc)
         });
 
+        let chart_types = [
+            ("Temperature in °C", MeasurementType::Temperature),
+            ("Humidity in %", MeasurementType::Humidity),
+            ("Pressure in hPa", MeasurementType::Pressure),
+            ("Air Quality", MeasurementType::AirQuality),
+            ("Battery Voltage in V", MeasurementType::BatVoltage),
+        ];
+
+        let mask = ctx.props().measurement_mask;
+        let charts_html: Vec<_> = chart_types.iter().map(|(desc, ty)| {
+            if mask.is_set(*ty) {
+                html! {
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">{desc.to_string()}</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="row">
+                                if let Some(measurements) = self.measurements.as_ref() {
+                                    <div class="col-md-12">
+                                        <SimpleChart ylabel={desc.to_string()} datapoints={measurements.timestamps
+                                                .iter()
+                                                .zip(&measurements.data[&(*ty as u32)])
+                                                .map(|(a, b)| (*a, *b))
+                                                .collect::<Vec<_>>()}/>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            } else {
+                html!{}
+            }
+        }).collect();
+
         // html
         html! {
             <>
@@ -129,42 +170,7 @@ impl Component for Model {
                     </div>
                 </div>
             </div>
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">{"Temperature"}</h3>
-                </div>
-                <div class="panel-body">
-                    <div class="row">
-                        if let Some(measurements) = self.measurements.as_ref() {
-                            <div class="col-md-12">
-                                <SimpleChart ylabel={"Temperature in °C"} datapoints={measurements.timestamps
-                                        .iter()
-                                        .zip(&measurements.data[&(req::MeasurementType::Temperature as u32)])
-                                        .map(|(a, b)| (*a, *b))
-                                        .collect::<Vec<_>>()}/>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">{"Humidity"}</h3>
-                </div>
-                <div class="panel-body">
-                    <div class="row">
-                        if let Some(measurements) = self.measurements.as_ref() {
-                            <div class="col-md-12">
-                                <SimpleChart ylabel={"Humidity in %"} datapoints={measurements.timestamps
-                                        .iter()
-                                        .zip(&measurements.data[&(req::MeasurementType::Humidity as u32)])
-                                        .map(|(a, b)| (*a, *b))
-                                        .collect::<Vec<_>>()}/>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
+            {charts_html}
             </>
         }
     }
@@ -189,7 +195,9 @@ impl Model {
                 device_id,
                 Some(ts_from),
                 None,
-                req::MeasurementType::Temperature as u32 | req::MeasurementType::Humidity as u32,
+                req::MeasurementType::Temperature as u32
+                    | req::MeasurementType::Humidity as u32
+                    | req::MeasurementType::BatVoltage as u32,
                 10000,
             )
             .await;
@@ -223,10 +231,23 @@ fn simple_chart(props: &ChartProps) -> Html {
         let start_date = utils::utc_from_millis(stats.x_min)
             .duration_trunc(chrono::Duration::days(1))
             .unwrap();
-        let end_date = utils::utc_from_millis(stats.x_max)
-            .duration_round(chrono::Duration::days(1))
+        let end_date = (utils::utc_from_millis(stats.x_max) + chrono::Duration::hours(1))
+            .duration_trunc(chrono::Duration::hours(1))
             .unwrap();
         let duration = end_date - start_date;
+
+        info!(
+            "{} {} {}",
+            start_date.day(),
+            start_date.hour(),
+            start_date.minute()
+        );
+        info!(
+            "{} {} {}",
+            end_date.day(),
+            end_date.hour(),
+            end_date.minute()
+        );
 
         let max_div = 12;
         let dd = chrono::Duration::hours(1);
@@ -293,7 +314,7 @@ fn ts_labeller(total_duration: Duration) -> impl Labeller {
         let local_date_time: DateTime<Local> = utc.into();
 
         if total_duration
-            < Duration::from_std(std::time::Duration::from_secs(60 * 60 * 24 * 2)).unwrap()
+            <= Duration::from_std(std::time::Duration::from_secs(60 * 60 * 24 * 2)).unwrap()
         {
             if local_date_time.hour() == 0
                 && local_date_time.minute() == 0
