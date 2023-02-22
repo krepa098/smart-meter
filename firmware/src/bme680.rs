@@ -267,9 +267,9 @@ impl Device {
         let mut device = Self {
             interface,
             cal: Default::default(),
-            t_offset: -1.59,
+            t_offset: -0.49,
             p_offset: 30.0,
-            h_offset: 10.0,
+            h_offset: 6.0,
         };
 
         // read calibration / factory data
