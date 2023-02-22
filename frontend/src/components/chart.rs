@@ -260,10 +260,11 @@ fn simple_chart(props: &ChartProps) -> Html {
 
         // vertical scale (measurements)
         let max_div = 8;
-        let div = (stats.y_max.ceil() - stats.y_min.floor()) / max_div as f32;
-        let v_scale = Rc::new(LinearScale::new(
+        let div = ((stats.y_max.ceil() + 1.0) - (stats.y_min.floor() - 1.0)) / max_div as f32;
+        let v_scale = Rc::new(LinearScale::with_labeller(
             stats.y_min.floor() - 1.0..stats.y_max.ceil() + 1.0,
             div,
+            Some(Rc::from(linear_scale_labeller())),
         )) as Rc<dyn Scale<Scalar = _>>;
         let tooltip = Rc::from(series::y_tooltip()) as Rc<dyn Tooltipper<_, _>>;
 
@@ -311,7 +312,7 @@ fn simple_chart(props: &ChartProps) -> Html {
     }
 }
 
-fn ts_labeller(total_duration: Duration) -> impl Labeller {
+fn ts_labeller(total_duration: Duration) -> impl yew_chart::time_axis_scale::Labeller {
     move |ts| {
         let utc = utils::utc_from_millis(ts);
         let local_date_time: DateTime<Local> = utc.into();
@@ -328,6 +329,17 @@ fn ts_labeller(total_duration: Duration) -> impl Labeller {
             return local_date_time.format("%H:%M\n%d/%m").to_string();
         } else {
             return local_date_time.format("%d/%m").to_string();
+        }
+    }
+}
+
+fn linear_scale_labeller() -> impl yew_chart::linear_axis_scale::Labeller {
+    move |y: f32| {
+        let decimal = y - y.floor();
+        if decimal == 0.0 {
+            format!("{:.0}", y)
+        } else {
+            format!("{:.1}", y)
         }
     }
 }
