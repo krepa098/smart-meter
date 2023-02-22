@@ -125,7 +125,7 @@ pub async fn new_http_server(db: Arc<Mutex<Db>>) -> std::io::Result<()> {
             .service(api_device_name)
             .wrap(
                 Cors::default()
-                    .allowed_origin("http://127.0.0.1:8080") // frontend
+                    .allow_any_origin()
                     .allowed_methods(vec!["GET", "POST"])
                     .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
                     .allowed_header(header::CONTENT_TYPE)
@@ -133,7 +133,7 @@ pub async fn new_http_server(db: Arc<Mutex<Db>>) -> std::io::Result<()> {
                     .max_age(3600),
             )
     })
-    .bind(("127.0.0.1", 8081))?
+    .bind(("0.0.0.0", 8081))?
     .run()
     .await
 }
