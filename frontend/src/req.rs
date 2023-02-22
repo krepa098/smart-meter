@@ -71,8 +71,17 @@ pub mod request {
     use super::{DeviceInfo, MeasurementMask, MeasurementRequestResponse};
 
     fn api_url(endpoint: &str) -> String {
-        let base_url = std::env::var("API_URL").unwrap_or("http://127.0.0.1:8081".to_string());
-        format!("{base_url}/{endpoint}")
+        let host_url = host_url();
+        format!("{host_url}/{endpoint}")
+    }
+
+    fn host_url() -> String {
+        let location = web_sys::window().unwrap().location();
+        format!(
+            "{}//{}:8081",
+            location.protocol().unwrap(),
+            location.hostname().unwrap()
+        )
     }
 
     pub async fn measurements(
