@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use actix_web::rt::net::UdpSocket;
 use anyhow::Result;
+use dotenvy::dotenv;
 use protocol::wire::{dgram::Pipeline, middleware};
 use tokio::signal;
 
@@ -23,6 +24,7 @@ fn ms_since_epoch() -> u128 {
 async fn main() -> Result<()> {
     std::env::set_var("RUST_LOG", "debug");
     env_logger::init();
+    dotenv().ok();
 
     let middleware = middleware::pipeline::default();
     let mut pipeline: Pipeline<packet::Packet, middleware::pipeline::Default> = Pipeline::new(
