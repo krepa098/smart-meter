@@ -12,7 +12,7 @@ use yew_chart::{
     axis::{Axis, Orientation, Scale},
     linear_axis_scale::LinearScale,
     series::{self, Series, Tooltipper, Type},
-    time_axis_scale::{Labeller, TimeScale},
+    time_axis_scale::TimeScale,
 };
 
 const WIDTH: f32 = 900.0;

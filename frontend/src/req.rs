@@ -63,11 +63,17 @@ pub struct MeasurementRequestResponse {
 // ===============================================
 // helpers
 // ===============================================
+
 pub mod request {
     use chrono::{DateTime, Utc};
     use reqwest::header::ACCEPT;
 
     use super::{DeviceInfo, MeasurementMask, MeasurementRequestResponse};
+
+    fn api_url(endpoint: &str) -> String {
+        let base_url = std::env::var("API_URL").unwrap_or("http://127.0.0.1:8081".to_string());
+        format!("{base_url}/{endpoint}")
+    }
 
     pub async fn measurements(
         device_id: u32,
@@ -91,7 +97,7 @@ pub mod request {
         }
 
         let resp = client
-            .get("http://127.0.0.1:8081/api/measurements/by_date")
+            .get(api_url("api/measurements/by_date"))
             .query(&query)
             .header(ACCEPT, "application/json")
             .send()
@@ -107,7 +113,7 @@ pub mod request {
         let client = reqwest::Client::new();
 
         let resp = client
-            .get("http://127.0.0.1:8081/api/devices")
+            .get(api_url("api/devices"))
             .header(ACCEPT, "application/json")
             .send()
             .await
