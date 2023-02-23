@@ -108,7 +108,14 @@ impl Component for Model {
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
+        if first_render {
+            self.request_datapoints(ctx);
+        }
+    }
+
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
         self.request_datapoints(ctx);
+        true
     }
 }
 

@@ -112,9 +112,9 @@ pub fn page_readings() -> Html {
     };
 
     // datetime
-    let to_date_handle = use_state(Utc::now);
+    let to_date_handle = use_state_eq(Utc::now);
     let from_date_handle =
-        use_state(|| Utc::now().duration_trunc(Duration::days(1)).unwrap() - Duration::days(1));
+        use_state_eq(|| Utc::now().duration_trunc(Duration::days(1)).unwrap() - Duration::days(1));
 
     let on_from_date_changed: Callback<DateTime<Utc>> = {
         let handle = from_date_handle.clone();
