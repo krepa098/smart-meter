@@ -115,7 +115,7 @@ impl Component for Model {
             ("Humidity in %", MeasurementType::Humidity, 1.0),
             ("Pressure in hPa", MeasurementType::Pressure, 1.0 / 100.0),
             ("Air Quality", MeasurementType::AirQuality, 1.0),
-            ("Battery Voltage in mV", MeasurementType::BatVoltage, 100.0),
+            ("Battery Voltage in mV", MeasurementType::BatVoltage, 1000.0),
         ];
 
         let mask = ctx.props().measurement_mask;
