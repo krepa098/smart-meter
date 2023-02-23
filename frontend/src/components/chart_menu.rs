@@ -101,22 +101,24 @@ impl Component for Model {
         html! {
             if  ctx.props().visible {
             <ul class="nav nav-sidebar">
+                // date and time
                 <li>
                     <div class="submenuitem">
-                            <div class="input-group col-md-12">
-                                <span class="input-group-addon width-70" id="basic-addon3">{"From"}</span>
-                                <input type="date" class="form-control" onchange={ts_from_cb} value={ts_from}/>
-                            </div>
+                        <div class="input-group col-md-12">
+                            <span class="input-group-addon width-70" id="basic-addon3">{"From"}</span>
+                            <input type="date" class="form-control" onchange={ts_from_cb} value={ts_from}/>
+                        </div>
                     </div>
                 </li>
                 <li>
                     <div class="submenuitem">
-                            <div class="input-group col-md-12">
-                                <span class="input-group-addon width-70" id="basic-addon3">{"To"}</span>
-                                <input type="date" class="form-control" onchange={ts_to_cb} value={ts_to}/>
-                            </div>
+                        <div class="input-group col-md-12">
+                            <span class="input-group-addon width-70" id="basic-addon3">{"To"}</span>
+                            <input type="date" class="form-control" onchange={ts_to_cb} value={ts_to}/>
+                        </div>
                     </div>
                 </li>
+                // checkboxes
                 {checkbox_list}
              </ul>
             }

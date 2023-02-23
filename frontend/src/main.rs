@@ -166,6 +166,7 @@ pub fn sidebar(props: &Props) -> Html {
     html! {
         <div class="col-sm-3 col-md-2 sidebar">
             <ul class="nav nav-sidebar">
+                <img class="logo-img center-block" src="media/logo.webp"/>
                 <li class={class_active(Route::Home)}>
                     <Link<Route> to={Route::Home}>{"⌂ Home"}</Link<Route>>
                 </li>
@@ -174,16 +175,15 @@ pub fn sidebar(props: &Props) -> Html {
                 </li>
                 <li class={class_active(Route::Readings)}>
                     <Link<Route> to={Route::Readings}>{"🗠 Readings"}</Link<Route>>
-                    <components::chart_menu::Model visible={props.current_route==Route::Readings}
-                        on_meas_mask_changed={props.on_meas_mask_changed.clone()}
-                        meas_mask={props.meas_mask}
-                        on_to_date_changed={props.on_to_date_changed.clone()}
-                        on_from_date_changed={props.on_from_date_changed.clone()}
-                        to_date={props.to_date}
-                        from_date={props.from_date} />
                 </li>
-
-
+                <components::chart_menu::Model visible={props.current_route==Route::Readings}
+                    on_meas_mask_changed={props.on_meas_mask_changed.clone()}
+                    meas_mask={props.meas_mask}
+                    on_to_date_changed={props.on_to_date_changed.clone()}
+                    on_from_date_changed={props.on_from_date_changed.clone()}
+                    to_date={props.to_date}
+                    from_date={props.from_date}
+                />
             </ul>
 
             <ul class="nav nav-sidebar fix-bottom">

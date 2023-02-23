@@ -80,7 +80,7 @@ pub fn device_list() -> yew::Html {
                         <div class="panel panel-default">
                             <div class="panel-heading"><h4>{"Bedroom"}</h4></div>
                             <div class="panel-body">
-                                <img class="center-block" src="media/m1s1.webp"/>
+                                <img class="device-img center-block" src="media/m1s1.webp"/>
                                 <table class="table table-hover">
                                     <tbody>
                                         if is_online {
