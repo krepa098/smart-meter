@@ -131,7 +131,7 @@ impl Model {
             let resp = req::request::measurements(
                 device_id,
                 Some(ts_from),
-                None,
+                Some(ts_to),
                 req::MeasurementMask::ALL,
                 10000,
             )

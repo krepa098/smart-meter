@@ -96,6 +96,7 @@ impl Component for Model {
         let local_ts_to: DateTime<Local> = DateTime::from(ctx.props().to_date);
         let ts_from = local_ts_from.format("%Y-%m-%d").to_string();
         let ts_to = local_ts_to.format("%Y-%m-%d").to_string();
+        let ts_today = Utc::now().format("%Y-%m-%d").to_string();
 
         // menu
         html! {
@@ -106,7 +107,7 @@ impl Component for Model {
                     <div class="submenuitem">
                         <div class="input-group col-md-12">
                             <span class="input-group-addon width-70" id="basic-addon3">{"From"}</span>
-                            <input type="date" class="form-control" onchange={ts_from_cb} value={ts_from}/>
+                            <input type="date" class="form-control" onchange={ts_from_cb} value={ts_from} max={ts_today.clone()}/>
                         </div>
                     </div>
                 </li>
@@ -114,7 +115,7 @@ impl Component for Model {
                     <div class="submenuitem">
                         <div class="input-group col-md-12">
                             <span class="input-group-addon width-70" id="basic-addon3">{"To"}</span>
-                            <input type="date" class="form-control" onchange={ts_to_cb} value={ts_to}/>
+                            <input type="date" class="form-control" onchange={ts_to_cb} value={ts_to} max={ts_today}/>
                         </div>
                     </div>
                 </li>
