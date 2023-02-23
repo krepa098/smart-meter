@@ -14,7 +14,7 @@ body {
 }
 
 .sidebar .active {
-    background-color: #eafbff;
+    background-color: #f4fdff;
 }
 
 .sidebar li {
@@ -39,6 +39,7 @@ img {
 
 .submenuitem {
     margin-left: 40px;
+    margin-right: 10px;
     padding-top: 5px;
     padding-bottom: 5px;
 }
@@ -48,4 +49,8 @@ img {
     font-size: small;
     cursor: pointer;
     font-weight: normal;
+}
+
+.width-70 {
+    width: 70px;
 }

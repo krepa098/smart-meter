@@ -6,7 +6,6 @@ use chrono::{prelude::*, Duration, DurationRound};
 use log::info;
 use std::rc::Rc;
 use utils::Stats;
-use wasm_bindgen::JsCast;
 use yew::prelude::*;
 use yew_chart::{
     axis::{Axis, Orientation, Scale},
@@ -21,22 +20,20 @@ const MARGIN: f32 = 50.0;
 const TICK_LENGTH: f32 = 15.0;
 
 pub enum Msg {
-    StartDateChanged(DateTime<Utc>),
-    EndDateChanged(DateTime<Utc>),
     DeviceIDChanged(u32),
     MeasurementsReceived(MeasurementRequestResponse),
 }
 
 pub struct Model {
     measurements: Option<MeasurementRequestResponse>,
-    ts_from: DateTime<Utc>,
-    ts_to: DateTime<Utc>,
     device_id: u32,
 }
 
 #[derive(Properties, PartialEq)]
 pub struct ModelProps {
     pub measurement_mask: MeasurementMask,
+    pub from_date: DateTime<Utc>,
+    pub to_date: DateTime<Utc>,
 }
 
 impl Component for Model {
@@ -45,29 +42,14 @@ impl Component for Model {
     type Properties = ModelProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let ts_to = Utc::now();
-        let ts_from = Utc::now().duration_trunc(Duration::days(1)).unwrap() - Duration::days(1);
-
         Self {
             measurements: None,
-            ts_from,
-            ts_to,
             device_id: 396891554,
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::StartDateChanged(ts) => {
-                self.ts_from = ts;
-                self.request_datapoints(ctx);
-                false
-            }
-            Msg::EndDateChanged(ts) => {
-                self.ts_to = ts;
-                self.request_datapoints(ctx);
-                false
-            }
             Msg::DeviceIDChanged(id) => {
                 self.device_id = id;
                 self.request_datapoints(ctx);
@@ -81,35 +63,6 @@ impl Component for Model {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let local_ts_from: DateTime<Local> = DateTime::from(self.ts_from);
-        let local_ts_to: DateTime<Local> = DateTime::from(self.ts_to);
-        let ts_from = local_ts_from.format("%Y-%m-%d").to_string();
-        let ts_to = local_ts_to.format("%Y-%m-%d").to_string();
-
-        // input callback
-        let ts_from_cb = ctx.link().callback(|e: Event| {
-            let target: Option<web_sys::EventTarget> = e.target();
-            let input = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
-            let timestring = input.unwrap().value();
-            let ts_utc: DateTime<Utc> = utils::js_date_ts_to_utc(&timestring);
-
-            info!("from (utc) {}", ts_utc.to_string());
-
-            Msg::StartDateChanged(ts_utc)
-        });
-
-        // input callback
-        let ts_to_cb = ctx.link().callback(|e: Event| {
-            let target: Option<web_sys::EventTarget> = e.target();
-            let input = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
-            let timestring = input.unwrap().value();
-            let ts_utc: DateTime<Utc> = utils::js_date_ts_to_utc(&timestring);
-
-            info!("to (utc) {}", ts_utc.to_string());
-
-            Msg::EndDateChanged(ts_utc)
-        });
-
         let chart_types = [
             ("Temperature in °C", MeasurementType::Temperature, 1.0),
             ("Humidity in %", MeasurementType::Humidity, 1.0),
@@ -149,43 +102,20 @@ impl Component for Model {
         // html
         html! {
             <>
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">{"Date"}</h3>
-                </div>
-                <div class="panel-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="input-group">
-                                <span class="input-group-addon" id="basic-addon3">{"From"}</span>
-                                <input type="date" onchange={ts_from_cb} class="form-control" value={ts_from}/>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="input-group">
-                                <span class="input-group-addon" id="basic-addon3">{"To"}</span>
-                                <input type="date" onchange={ts_to_cb} class="form-control" value={ts_to}/>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
             {charts_html}
             </>
         }
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
-        if first_render {
-            self.request_datapoints(ctx);
-        }
+        self.request_datapoints(ctx);
     }
 }
 
 impl Model {
     pub fn request_datapoints(&self, ctx: &Context<Self>) {
-        let ts_from = self.ts_from;
-        let ts_to = self.ts_to;
+        let ts_from = ctx.props().from_date;
+        let ts_to = ctx.props().to_date;
         // let device_id = self.device_id;
         let device_id = 396891554;
 
