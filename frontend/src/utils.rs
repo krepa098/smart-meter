@@ -1,6 +1,7 @@
 // pub fn duration_to_now(old: &std::time::Duration) -> std::time::Duration {}
 
 use chrono::{DateTime, Local, Utc};
+use log::info;
 use std::time::Duration;
 
 pub fn duration_since_epoch(stamp_older: u64) -> Duration {
@@ -42,6 +43,13 @@ pub fn js_date_ts_to_utc(timestring: &str) -> DateTime<Utc> {
         .unwrap();
     let ts_utc: DateTime<Utc> = DateTime::from(ts);
     ts_utc
+}
+
+pub fn utc_to_js(datetime: &DateTime<Utc>) -> String {
+    let local_ts: DateTime<Local> = DateTime::from(*datetime);
+    let local_ts_str = local_ts.format("%Y-%m-%d").to_string();
+    info!("{}", local_ts_str);
+    local_ts_str
 }
 
 // pub fn stats

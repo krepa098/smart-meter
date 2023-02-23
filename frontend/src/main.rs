@@ -184,6 +184,7 @@ pub fn sidebar(props: &Props) -> Html {
                     to_date={props.to_date}
                     from_date={props.from_date}
                 />
+                <li/>
             </ul>
 
             <ul class="nav nav-sidebar fix-bottom">

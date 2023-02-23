@@ -26,6 +26,15 @@ pub enum MeasurementType {
     AirQuality = 1 << 5,
 }
 
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+#[allow(unused)]
+pub struct MeasurementInfo {
+    pub device_id: i32,
+    pub from_timestamp: i64,
+    pub to_timestamp: i64,
+    pub count: i64,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(unused)]
 pub struct MeasurementMask(u32);
@@ -68,7 +77,7 @@ pub mod request {
     use chrono::{DateTime, Utc};
     use reqwest::header::ACCEPT;
 
-    use super::{DeviceInfo, MeasurementMask, MeasurementRequestResponse};
+    use super::*;
 
     fn api_url(endpoint: &str) -> String {
         let host_url = host_url();
@@ -128,6 +137,23 @@ pub mod request {
             .await
             .unwrap()
             .json::<Vec<DeviceInfo>>()
+            .await
+            .unwrap();
+
+        resp
+    }
+
+    pub async fn measurement_info(device_id: u32) -> MeasurementInfo {
+        let client = reqwest::Client::new();
+
+        let resp = client
+            .get(api_url("api/measurements/info"))
+            .query(&[("device_id", device_id as i64)])
+            .header(ACCEPT, "application/json")
+            .send()
+            .await
+            .unwrap()
+            .json::<MeasurementInfo>()
             .await
             .unwrap();
 

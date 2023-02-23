@@ -187,6 +187,25 @@ impl Db {
         Ok(res)
     }
 
+    pub fn measurement_info(&mut self, dev_id: u32) -> Result<(i64, i64, i64)> {
+        use crate::schema::measurements::dsl::*;
+        let oldest_entry = measurements
+            .filter(device_id.eq(dev_id as i32))
+            .order(id.asc())
+            .first::<models::DeviceMeasurement>(&mut self.conn)?;
+        let most_recent_entry = measurements
+            .filter(device_id.eq(dev_id as i32))
+            .order(id.desc())
+            .first::<models::DeviceMeasurement>(&mut self.conn)?;
+
+        let count = measurements
+            .filter(device_id.eq(dev_id as i32))
+            .count()
+            .get_result::<i64>(&mut self.conn)?;
+
+        Ok((oldest_entry.timestamp, most_recent_entry.timestamp, count))
+    }
+
     pub fn devices(&mut self) -> Result<Vec<models::DeviceInfo>> {
         use crate::schema::devices::dsl;
         let devices = dsl::devices.load::<models::DeviceInfo>(&mut self.conn)?;

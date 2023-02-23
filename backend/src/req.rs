@@ -19,3 +19,12 @@ pub struct MeasurementRequestResponse {
     pub timestamps: Vec<i64>,
     pub data: HashMap<u32, Vec<f32>>,
 }
+
+#[derive(Debug, serde::Serialize)]
+#[allow(unused)]
+pub struct MeasurementInfo {
+    pub device_id: i32,
+    pub from_timestamp: i64,
+    pub to_timestamp: i64,
+    pub count: i64,
+}

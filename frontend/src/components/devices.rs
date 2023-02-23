@@ -1,4 +1,5 @@
 use std::time::Duration;
+use log::info;
 use yew::{function_component, html, use_state};
 
 use crate::{
@@ -10,6 +11,7 @@ use crate::{
 pub fn device_list() -> yew::Html {
     let devices = use_state(|| None);
     let latest_device_measurements = use_state(|| None);
+    let device_measurement_infos = use_state(|| None);
 
     // requests
     {
@@ -24,10 +26,12 @@ pub fn device_list() -> yew::Html {
     {
         let devices = devices.clone();
         let latest_device_measurements = latest_device_measurements.clone();
+        let device_measurement_infos = device_measurement_infos.clone();
 
         if latest_device_measurements.is_none() && devices.is_some() {
             wasm_bindgen_futures::spawn_local(async move {
                 let mut measurements = std::collections::HashMap::new();
+                let mut measurement_infos = std::collections::HashMap::new();
 
                 for dev in devices.as_ref().unwrap() {
                     let id = dev.device_id;
@@ -39,11 +43,14 @@ pub fn device_list() -> yew::Html {
                         1,
                     )
                     .await;
-
                     measurements.insert(id, resp);
+
+                    let resp = req::request::measurement_info(dev.device_id as u32).await;
+                    measurement_infos.insert(id, resp);
                 }
 
                 latest_device_measurements.set(Some(measurements));
+                device_measurement_infos.set(Some(measurement_infos));
             });
         }
     }
@@ -74,6 +81,15 @@ pub fn device_list() -> yew::Html {
                     Some(wifi) => wifi.to_string(),
                     None => "N/A".to_string(),
                 };
+                let sample_count = if let Some(info) = device_measurement_infos.as_ref() {
+                    format!(
+                        "{}",
+                        info.get(&device_id).unwrap().count
+                    ) 
+                } else {
+                    "N/A".to_owned()
+                };
+  
 
                 html! {
                     <div class="col-xs-3">
@@ -96,6 +112,7 @@ pub fn device_list() -> yew::Html {
                                         <tr><td>{"WiFi"}</td><td>{wifi}</td></tr>
                                         <tr><td>{"Report Interval"}</td><td>{report_interval}</td></tr>
                                         <tr><td>{"Sample Interval"}</td><td>{sample_interval}</td></tr>
+                                        <tr><td>{"Samples"}</td><td>{sample_count}</td></tr>
                                     </tbody>
                                 </table>
                             </div>

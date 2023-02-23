@@ -1,5 +1,5 @@
 use crate::{
-    req::{MeasurementMask, MeasurementType},
+    req::{self, MeasurementInfo, MeasurementMask, MeasurementType},
     utils,
 };
 use chrono::{DateTime, Local, Utc};
@@ -27,18 +27,32 @@ pub struct Props {
     pub to_date: DateTime<Utc>,
 }
 
-pub struct Model {}
+pub enum Msg {
+    MeasurementInfoReceived(MeasurementInfo),
+}
+
+pub struct Model {
+    pub device_id: u32,
+    pub ts_max: Option<DateTime<Utc>>,
+    pub ts_min: Option<DateTime<Utc>>,
+}
 
 impl Component for Model {
-    type Message = ();
+    type Message = Msg;
 
     type Properties = Props;
 
     fn create(ctx: &Context<Self>) -> Self {
-        Self {}
+        Self {
+            device_id: 396891554,
+            ts_max: None,
+            ts_min: None,
+        }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        let link = ctx.link();
+
         // create measurement mask checkboxes
         let mes_types = [
             (" Temperature", MeasurementType::Temperature),
@@ -75,7 +89,7 @@ impl Component for Model {
 
         // date callbacks
         let cb = ctx.props().on_from_date_changed.clone();
-        let ts_from_cb = ctx.link().callback(move |e: Event| {
+        let ts_from_cb = Callback::from(move |e: Event| {
             let target: Option<web_sys::EventTarget> = e.target();
             let input = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
             let timestring = input.unwrap().value();
@@ -84,7 +98,7 @@ impl Component for Model {
         });
 
         let cb = ctx.props().on_to_date_changed.clone();
-        let ts_to_cb = ctx.link().callback(move |e: Event| {
+        let ts_to_cb = Callback::from(move |e: Event| {
             let target: Option<web_sys::EventTarget> = e.target();
             let input = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
             let timestring = input.unwrap().value();
@@ -96,7 +110,6 @@ impl Component for Model {
         let local_ts_to: DateTime<Local> = DateTime::from(ctx.props().to_date);
         let ts_from = local_ts_from.format("%Y-%m-%d").to_string();
         let ts_to = local_ts_to.format("%Y-%m-%d").to_string();
-        let ts_today = Utc::now().format("%Y-%m-%d").to_string();
 
         // menu
         html! {
@@ -107,7 +120,16 @@ impl Component for Model {
                     <div class="submenuitem">
                         <div class="input-group col-md-12">
                             <span class="input-group-addon width-70" id="basic-addon3">{"From"}</span>
-                            <input type="date" class="form-control" onchange={ts_from_cb} value={ts_from} max={ts_today.clone()}/>
+                            <input type="date" class="form-control" onchange={ts_from_cb} value={ts_from}
+                                min={match self.ts_min {
+                                    Some(ts) => utils::utc_to_js(&ts),
+                                    None => "".to_string(),
+                                }}
+                                max={match self.ts_max {
+                                    Some(ts) => utils::utc_to_js(&ts),
+                                    None => "".to_string(),
+                                }}
+                            />
                         </div>
                     </div>
                 </li>
@@ -115,7 +137,16 @@ impl Component for Model {
                     <div class="submenuitem">
                         <div class="input-group col-md-12">
                             <span class="input-group-addon width-70" id="basic-addon3">{"To"}</span>
-                            <input type="date" class="form-control" onchange={ts_to_cb} value={ts_to} max={ts_today}/>
+                            <input type="date" class="form-control" onchange={ts_to_cb} value={ts_to}
+                                min={match self.ts_min {
+                                    Some(ts) => utils::utc_to_js(&ts),
+                                    None => "".to_string(),
+                                }}
+                                max={match self.ts_max {
+                                    Some(ts) => utils::utc_to_js(&ts),
+                                    None => "".to_string(),
+                                }}
+                            />
                         </div>
                     </div>
                 </li>
@@ -123,6 +154,31 @@ impl Component for Model {
                 {checkbox_list}
              </ul>
             }
+        }
+    }
+
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            Msg::MeasurementInfoReceived(m) => {
+                self.ts_max = Some(utils::utc_from_millis(m.to_timestamp));
+                self.ts_min = Some(utils::utc_from_millis(m.from_timestamp));
+            }
+        }
+        true
+    }
+
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        true
+    }
+
+    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
+        if first_render {
+            let link = ctx.link().clone();
+            let device_id = self.device_id;
+            wasm_bindgen_futures::spawn_local(async move {
+                let resp = req::request::measurement_info(device_id).await;
+                link.send_message(Msg::MeasurementInfoReceived(resp));
+            });
         }
     }
 }

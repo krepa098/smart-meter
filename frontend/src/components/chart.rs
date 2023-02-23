@@ -26,6 +26,7 @@ pub enum Msg {
 
 pub struct Model {
     measurements: Option<MeasurementRequestResponse>,
+    measurements_from_ts: Option<DateTime<Utc>>, // oldest available measurement
     device_id: u32,
 }
 
@@ -44,6 +45,7 @@ impl Component for Model {
     fn create(ctx: &Context<Self>) -> Self {
         Self {
             measurements: None,
+            measurements_from_ts: None,
             device_id: 396891554,
         }
     }

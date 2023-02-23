@@ -12,7 +12,10 @@ use actix_web::{
     App, HttpResponse, HttpServer, Responder,
 };
 
-use crate::db::{models, Db};
+use crate::{
+    db::{models, Db},
+    req::MeasurementInfo,
+};
 
 #[get("/")]
 async fn hello(_db: web::Data<Arc<Mutex<Db>>>) -> impl Responder {
@@ -43,6 +46,30 @@ async fn api_measurements_by_date(
             query.limit,
         ) {
             return Ok(web::Json(res));
+        }
+    }
+    Err(io::Error::new(io::ErrorKind::BrokenPipe, "".to_string()))
+}
+
+#[derive(serde::Deserialize, Debug)]
+struct MeasurementsInfoQuery {
+    device_id: u32,
+}
+
+#[get("/api/measurements/info")]
+async fn api_measurements_info(
+    query: web::Query<MeasurementsInfoQuery>,
+    db: web::Data<Arc<Mutex<Db>>>,
+) -> io::Result<impl Responder> {
+    dbg!(&query);
+    if let Ok(mut db) = db.lock() {
+        if let Ok(res) = db.measurement_info(query.device_id) {
+            return Ok(web::Json(MeasurementInfo {
+                device_id: query.device_id as i32,
+                from_timestamp: res.0,
+                to_timestamp: res.1,
+                count: res.2,
+            }));
         }
     }
     Err(io::Error::new(io::ErrorKind::BrokenPipe, "".to_string()))
@@ -120,6 +147,7 @@ pub async fn new_http_server(db: Arc<Mutex<Db>>) -> std::io::Result<()> {
             .service(hello)
             .service(api_measurements_by_date)
             .service(api_measurements_all)
+            .service(api_measurements_info)
             .service(api_known_devices)
             .service(api_set_device_name)
             .service(api_device_name)
