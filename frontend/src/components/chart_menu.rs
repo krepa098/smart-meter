@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use crate::{
-    req::{self, MeasurementInfo, MeasurementMask, MeasurementType},
+    req::{self, DeviceInfo, MeasurementInfo, MeasurementMask, MeasurementType},
     utils,
 };
 use chrono::{DateTime, Local, Utc};
@@ -25,16 +27,23 @@ pub struct Props {
     pub on_to_date_changed: Callback<DateTime<Utc>>,
     pub from_date: DateTime<Utc>,
     pub to_date: DateTime<Utc>,
+
+    // device
+    pub on_device_id_changed: Callback<u32>,
+    pub device_id: Option<u32>,
 }
 
 pub enum Msg {
     MeasurementInfoReceived(MeasurementInfo),
+    DeviceInfoReceived(Vec<DeviceInfo>),
+    DeviceNameReceived((u32, String)),
 }
 
 pub struct Model {
-    pub device_id: u32,
     pub ts_max: Option<DateTime<Utc>>,
     pub ts_min: Option<DateTime<Utc>>,
+    pub devices: Option<Vec<DeviceInfo>>,
+    pub device_names: HashMap<u32, String>,
 }
 
 impl Component for Model {
@@ -44,9 +53,10 @@ impl Component for Model {
 
     fn create(ctx: &Context<Self>) -> Self {
         Self {
-            device_id: 396891554,
             ts_max: None,
             ts_min: None,
+            devices: None,
+            device_names: HashMap::new(),
         }
     }
 
@@ -106,29 +116,55 @@ impl Component for Model {
             cb.emit(ts_utc);
         });
 
+        let cb = ctx.props().on_device_id_changed.clone();
+        let device_cb = Callback::from(move |e: Event| {
+            let target: Option<web_sys::EventTarget> = e.target();
+            let input = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
+            let value = input.unwrap().value_as_number() as u32;
+            info!("{}", value);
+            cb.emit(value);
+        });
+
         let local_ts_from: DateTime<Local> = DateTime::from(ctx.props().from_date);
         let local_ts_to: DateTime<Local> = DateTime::from(ctx.props().to_date);
         let ts_from = local_ts_from.format("%Y-%m-%d").to_string();
         let ts_to = local_ts_to.format("%Y-%m-%d").to_string();
 
+        let device_ids = self.device_names.keys();
+        let device_list: Vec<_> = device_ids
+            .into_iter()
+            .map(|k| {
+                let device_id = *k;
+                let device_name = self.device_names[&device_id].clone();
+                html! {
+                    <option>{device_name}</option>
+                }
+            })
+            .collect();
+
         // menu
         html! {
             if  ctx.props().visible {
             <ul class="nav nav-sidebar">
+                // device
+                <li>
+                    <div class="submenuitem">
+                        <div class="input-group col-md-12">
+                            <span class="input-group-addon width-70" id="basic-addon3">{"Device"}</span>
+                            <select id="company" class="form-control" onchange={device_cb}>
+                                {device_list}
+                            </select>
+                        </div>
+                    </div>
+                </li>
                 // date and time
                 <li>
                     <div class="submenuitem">
                         <div class="input-group col-md-12">
                             <span class="input-group-addon width-70" id="basic-addon3">{"From"}</span>
                             <input type="date" class="form-control" onchange={ts_from_cb} value={ts_from}
-                                min={match self.ts_min {
-                                    Some(ts) => utils::utc_to_js(&ts),
-                                    None => "".to_string(),
-                                }}
-                                max={match self.ts_max {
-                                    Some(ts) => utils::utc_to_js(&ts),
-                                    None => "".to_string(),
-                                }}
+                                min={self.ts_min.as_ref().map(utils::utc_to_js)}
+                                max={self.ts_max.as_ref().map(utils::utc_to_js)}
                             />
                         </div>
                     </div>
@@ -138,14 +174,8 @@ impl Component for Model {
                         <div class="input-group col-md-12">
                             <span class="input-group-addon width-70" id="basic-addon3">{"To"}</span>
                             <input type="date" class="form-control" onchange={ts_to_cb} value={ts_to}
-                                min={match self.ts_min {
-                                    Some(ts) => utils::utc_to_js(&ts),
-                                    None => "".to_string(),
-                                }}
-                                max={match self.ts_max {
-                                    Some(ts) => utils::utc_to_js(&ts),
-                                    None => "".to_string(),
-                                }}
+                                min={self.ts_min.as_ref().map(utils::utc_to_js)}
+                                max={self.ts_max.as_ref().map(utils::utc_to_js)}
                             />
                         </div>
                     </div>
@@ -162,22 +192,63 @@ impl Component for Model {
             Msg::MeasurementInfoReceived(m) => {
                 self.ts_max = Some(utils::utc_from_millis(m.to_timestamp));
                 self.ts_min = Some(utils::utc_from_millis(m.from_timestamp));
+                true
+            }
+            Msg::DeviceInfoReceived(m) => {
+                if ctx.props().device_id.is_none() && !m.is_empty() {
+                    ctx.props()
+                        .on_device_id_changed
+                        .emit(m.first().unwrap().device_id as u32);
+                }
+
+                self.devices = Some(m);
+
+                true
+            }
+            Msg::DeviceNameReceived((id, mut name)) => {
+                if name.is_empty() {
+                    name = id.to_string();
+                }
+                self.device_names.insert(id, name);
+                true
             }
         }
-        true
     }
 
-    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+    fn changed(&mut self, _ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
         true
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if first_render {
             let link = ctx.link().clone();
-            let device_id = self.device_id;
+            let device_id = ctx.props().device_id;
+            let on_device_changed = ctx.props().on_device_id_changed.clone();
             wasm_bindgen_futures::spawn_local(async move {
+                let devices_resp = req::request::device_infos().await;
+
+                // resolve device names
+                for dev in &devices_resp {
+                    let name_req = req::request::device_name(dev.device_id as u32).await;
+                    match name_req {
+                        Ok(name) => {
+                            link.send_message(Msg::DeviceNameReceived((dev.device_id as u32, name)))
+                        }
+                        Err(_) => link.send_message(Msg::DeviceNameReceived((
+                            dev.device_id as u32,
+                            format!("{} (unnamed)", dev.device_id),
+                        ))),
+                    }
+                }
+
+                // request measurement info for selected device
+                let device_id = device_id.unwrap_or(devices_resp.first().unwrap().device_id as u32);
                 let resp = req::request::measurement_info(device_id).await;
                 link.send_message(Msg::MeasurementInfoReceived(resp));
+                on_device_changed.emit(device_id);
+
+                // devices
+                link.send_message(Msg::DeviceInfoReceived(devices_resp));
             });
         }
     }

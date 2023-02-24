@@ -1,4 +1,5 @@
 // keep in sync with db.rs of backend
+use anyhow::Result;
 use std::collections::HashMap;
 
 #[derive(Debug, serde::Deserialize)]
@@ -158,5 +159,34 @@ pub mod request {
             .unwrap();
 
         resp
+    }
+
+    pub async fn device_name(device_id: u32) -> Result<String> {
+        let client = reqwest::Client::new();
+
+        let res = client
+            .get(api_url("api/device_name"))
+            .query(&[("device_id", device_id as i64)])
+            .header(ACCEPT, "application/json")
+            .send()
+            .await?
+            .json::<String>()
+            .await?;
+
+        Ok(res)
+    }
+
+    pub async fn set_device_name(device_id: u32, name: String) -> Result<()> {
+        let client = reqwest::Client::new();
+
+        let res = client
+            .put(api_url("api/device_name"))
+            .query(&[("device_id", device_id.to_string()), ("name", name)])
+            .header(ACCEPT, "application/json")
+            .send()
+            .await?
+            .status();
+
+        Ok(())
     }
 }

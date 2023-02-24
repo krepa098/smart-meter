@@ -42,6 +42,12 @@ pub struct Props {
     pub from_date: DateTime<Utc>,
     #[prop_or_default]
     pub to_date: DateTime<Utc>,
+
+    // device
+    #[prop_or_default]
+    pub on_device_id_changed: Callback<u32>,
+    #[prop_or_default]
+    pub device_id: Option<u32>,
 }
 
 enum Msg {}
@@ -130,6 +136,14 @@ pub fn page_readings() -> Html {
         })
     };
 
+    let device_id_handle = use_state_eq(|| None);
+    let on_device_id_changed: Callback<u32> = {
+        let handle = device_id_handle.clone();
+        Callback::from(move |id| {
+            handle.set(Some(id));
+        })
+    };
+
     html! {
         <div class="container-fluid">
             <div class="row">
@@ -137,6 +151,7 @@ pub fn page_readings() -> Html {
                     {on_meas_mask_changed} meas_mask={*meas_mask_handle}
                     {on_to_date_changed} {on_from_date_changed}
                     to_date={*to_date_handle} from_date={*from_date_handle}
+                    {on_device_id_changed} device_id={*device_id_handle}
                 />
                 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
                     <h1 class="page-header">{"Readings"}</h1>
@@ -183,6 +198,8 @@ pub fn sidebar(props: &Props) -> Html {
                     on_from_date_changed={props.on_from_date_changed.clone()}
                     to_date={props.to_date}
                     from_date={props.from_date}
+                    on_device_id_changed={props.on_device_id_changed.clone()}
+                    device_id={props.device_id}
                 />
                 <li/>
             </ul>

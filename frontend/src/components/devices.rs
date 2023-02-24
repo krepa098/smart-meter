@@ -1,6 +1,8 @@
-use std::time::Duration;
+use std::{time::Duration, collections::HashMap};
 use log::info;
-use yew::{function_component, html, use_state};
+use wasm_bindgen::JsCast;
+use web_sys::{Event, KeyboardEvent};
+use yew::{function_component, html, use_state, Callback, use_mut_ref};
 
 use crate::{
     req::{self, MeasurementType},
@@ -14,6 +16,7 @@ pub fn device_list() -> yew::Html {
     let devices = use_state(|| None);
     let latest_device_measurements = use_state(|| None);
     let device_measurement_infos = use_state(|| None);
+    let device_names = use_mut_ref(HashMap::new);
 
     // requests
     {
@@ -29,11 +32,13 @@ pub fn device_list() -> yew::Html {
         let devices = devices.clone();
         let latest_device_measurements = latest_device_measurements.clone();
         let device_measurement_infos = device_measurement_infos.clone();
+        let device_names = device_names.clone();
 
         if latest_device_measurements.is_none() && devices.is_some() {
             wasm_bindgen_futures::spawn_local(async move {
-                let mut measurements = std::collections::HashMap::new();
-                let mut measurement_infos = std::collections::HashMap::new();
+                let mut measurements = HashMap::new();
+                let mut measurement_infos = HashMap::new();
+                let mut names = HashMap::new();
 
                 for dev in devices.as_ref().unwrap() {
                     let id = dev.device_id;
@@ -49,10 +54,15 @@ pub fn device_list() -> yew::Html {
 
                     let resp = req::request::measurement_info(dev.device_id as u32).await;
                     measurement_infos.insert(id, resp);
+
+                    let dev_name_resp = req::request::device_name(dev.device_id as u32).await;
+                    let dev_name = dev_name_resp.map_or(format!("{} (unnamed)", dev.device_id as u32), |v| v);
+                    names.insert(dev.device_id as u32, dev_name);
                 }
 
                 latest_device_measurements.set(Some(measurements));
                 device_measurement_infos.set(Some(measurement_infos));
+                device_names.replace(names);
             });
         }
     }
@@ -86,11 +96,48 @@ pub fn device_list() -> yew::Html {
                     NOT_AVAILABLE.to_string(), 
                     |info| format!("{}", info.get(&device_id).unwrap().count)
                 );
+
+                let button_click_cb = {
+                    let device_names = device_names.clone();
+                    Callback::from(move |_| {
+                        let device_names = device_names.clone();
+                        wasm_bindgen_futures::spawn_local(async move {
+                            let name = device_names.borrow().get(&(device_id as u32)).cloned();
+                            if let Some(name) = name {
+                                req::request::set_device_name(device_id as u32, name).await.unwrap();
+                            }
+                        });
+                    })
+                };
+
+                let name_change_cb = {
+                    let device_names = device_names.clone();
+                    Callback::from(move |e: KeyboardEvent| {
+                        let target: Option<web_sys::EventTarget> = e.target();
+                        let input = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
+                        let value = input.unwrap().value();
+                        device_names.borrow_mut().insert(device_id as u32, value);                 
+                    })
+                };
   
                 html! {
                     <div class="col-xs-3">
                         <div class="panel panel-default">
-                            <div class="panel-heading"><h4>{"Bedroom"}</h4></div>
+                            <div class="panel-heading">
+                                <div class="row">
+                                    <div class="col-lg-12">
+                                        <div class="input-group input-group-lg">
+                                            <input type="text" class="form-control" 
+                                                value={device_names.borrow().get_key_value(&(device_id as u32)).as_ref().map_or("/".to_string(), |s| s.1.clone())}
+                                                    onkeyup={name_change_cb}
+                                                />
+                                            <span class="input-group-btn">
+                                                <button class="btn btn-default" type="button" onclick={button_click_cb}>{"✎"}</button>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="panel-body">
                                 <img class="device-img center-block" src="media/m1s1.webp"/>
                                 <table class="table table-hover">

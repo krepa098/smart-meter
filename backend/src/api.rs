@@ -134,10 +134,10 @@ async fn api_device_name(
     dbg!(&query);
     if let Ok(mut db) = db.lock() {
         if let Ok(res) = db.device_name(query.device_id) {
-            return Ok(web::Json(res));
+            return Ok(web::Json(res.name));
         }
     }
-    Err(io::Error::new(io::ErrorKind::BrokenPipe, "".to_string()))
+    Err(io::Error::new(io::ErrorKind::NotFound, "".to_string()))
 }
 
 pub async fn new_http_server(db: Arc<Mutex<Db>>) -> std::io::Result<()> {
@@ -154,7 +154,7 @@ pub async fn new_http_server(db: Arc<Mutex<Db>>) -> std::io::Result<()> {
             .wrap(
                 Cors::default()
                     .allow_any_origin()
-                    .allowed_methods(vec!["GET", "POST"])
+                    .allowed_methods(vec!["GET", "PUT"])
                     .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
                     .allowed_header(header::CONTENT_TYPE)
                     .supports_credentials()

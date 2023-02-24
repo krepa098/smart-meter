@@ -4,6 +4,8 @@ use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
 use std::env;
 
+use self::models::DeviceName;
+
 pub mod models {
     use super::*;
 
@@ -94,18 +96,13 @@ impl Db {
         Ok(())
     }
 
-    pub fn device_name(&mut self, device_id: u32) -> Result<String> {
+    pub fn device_name(&mut self, device_id: u32) -> Result<DeviceName> {
         use crate::schema::device_names::dsl;
         let device_name = dsl::device_names
             .filter(dsl::device_id.eq(device_id as i32))
-            .limit(1)
-            .load::<models::DeviceName>(&mut self.conn)?;
+            .first::<models::DeviceName>(&mut self.conn)?;
 
-        if let Some(device_name) = device_name.get(0) {
-            return Ok(device_name.name.clone());
-        }
-
-        bail!("No device name found")
+        Ok(device_name)
     }
 
     pub fn measurements_by_date(
