@@ -7,6 +7,8 @@ use crate::{
     utils,
 };
 
+const NOT_AVAILABLE: &str = "N/A";
+
 #[function_component(Devices)]
 pub fn device_list() -> yew::Html {
     let devices = use_state(|| None);
@@ -69,28 +71,22 @@ pub fn device_list() -> yew::Html {
 
                 let duration_since_last_report = utils::utc_now() - last_seen;
                 let is_online = duration_since_last_report < chrono::Duration::from_std(Duration::from_secs(dev.report_interval as u64) - Duration::from_secs(60)).unwrap();
-                let bat_cap_str = if let Some(measurements) = latest_device_measurements.as_ref() {
-                    format!(
+                let bat_cap_str = latest_device_measurements.as_ref().map_or(
+                    NOT_AVAILABLE.to_string(),
+                    |m| format!(
                         "{:.0}%",
-                        measurements.get(&device_id).unwrap().data[&(MeasurementType::BatCapacity as u32)][0]
+                        m.get(&device_id).unwrap().data[&(MeasurementType::BatCapacity as u32)][0]
                     )
-                } else {
-                    "N/A".to_owned()
-                };
-                let wifi = match dev.wifi_ssid.as_ref() {
-                    Some(wifi) => wifi.to_string(),
-                    None => "N/A".to_string(),
-                };
-                let sample_count = if let Some(info) = device_measurement_infos.as_ref() {
-                    format!(
-                        "{}",
-                        info.get(&device_id).unwrap().count
-                    ) 
-                } else {
-                    "N/A".to_owned()
-                };
+                );
+                let wifi = dev.wifi_ssid.as_ref().map_or(
+                    NOT_AVAILABLE.to_string(), 
+                    |w| w.to_string(),
+                );
+                let sample_count = device_measurement_infos.as_ref().map_or(
+                    NOT_AVAILABLE.to_string(), 
+                    |info| format!("{}", info.get(&device_id).unwrap().count)
+                );
   
-
                 html! {
                     <div class="col-xs-3">
                         <div class="panel panel-default">
@@ -106,8 +102,8 @@ pub fn device_list() -> yew::Html {
                                             <tr class="warning"><td>{"Online"}</td><td>{"🔴"}</td></tr>
                                         }
                                         <tr><td>{"Device ID"}</td><td>{dev.device_id}</td></tr>
-                                        <tr><td>{"Firmware"}</td><td>{dev.fw_version.to_string()}</td></tr>
-                                        <tr><td>{"BSEC"}</td><td>{dev.bsec_version.to_string()}</td></tr>
+                                        <tr><td>{"Firmware"}</td><td>{dev.fw_version.clone()}</td></tr>
+                                        <tr><td>{"BSEC"}</td><td>{dev.bsec_version.clone()}</td></tr>
                                         <tr><td>{"Battery"}</td><td>{bat_cap_str}</td></tr>
                                         <tr><td>{"WiFi"}</td><td>{wifi}</td></tr>
                                         <tr><td>{"Report Interval"}</td><td>{report_interval}</td></tr>
