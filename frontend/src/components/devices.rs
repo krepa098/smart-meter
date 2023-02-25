@@ -151,7 +151,14 @@ pub fn device_list() -> yew::Html {
                                                     value={device_name} onkeyup={name_change_cb} disabled={!device_edit_name}
                                                 />
                                                 <span class="input-group-btn">
-                                                    <button class="btn btn-default" type="button" onclick={button_click_cb}>{"✎"}</button>
+                                                    <button class="btn btn-default" type="button" onclick={button_click_cb}>
+                                                    if device_edit_name {
+                                                        <span class="glyphicon glyphicon-floppy-save" aria-hidden="true"></span>                                                        
+                                                    } else {
+                                                        <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>                                                        
+                                                    }
+
+                                                    </button>
                                                 </span>
                                             </div>
                                         </div>

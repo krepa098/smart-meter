@@ -183,13 +183,13 @@ pub fn sidebar(props: &Props) -> Html {
             <ul class="nav nav-sidebar">
                 <img class="logo-img center-block" src="media/logo.webp"/>
                 <li class={class_active(Route::Home)}>
-                    <Link<Route> to={Route::Home}>{"⌂ Home"}</Link<Route>>
+                    <Link<Route> to={Route::Home}><span class="glyphicon glyphicon-home" aria-hidden="true"/>{" Home"}</Link<Route>>
                 </li>
                 <li class={class_active(Route::Devices)}>
-                    <Link<Route> to={Route::Devices}>{"🖴 Devices"}</Link<Route>>
+                    <Link<Route> to={Route::Devices}><span class="glyphicon glyphicon-modal-window" aria-hidden="true"/> {" Devices"}</Link<Route>>
                 </li>
                 <li class={class_active(Route::Readings)}>
-                    <Link<Route> to={Route::Readings}>{"🗠 Readings"}</Link<Route>>
+                    <Link<Route> to={Route::Readings}><span class="glyphicon glyphicon-scale" aria-hidden="true"/> {" Readings"}</Link<Route>>
                 </li>
                 <components::chart_menu::Model visible={props.current_route==Route::Readings}
                     on_meas_mask_changed={props.on_meas_mask_changed.clone()}
