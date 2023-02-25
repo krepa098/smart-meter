@@ -17,6 +17,7 @@ pub fn device_list() -> yew::Html {
     let latest_device_measurements = use_state(|| None);
     let device_measurement_infos = use_state(|| None);
     let device_names = use_mut_ref(HashMap::new);
+    let device_edit_names = use_state(HashMap::new);
 
     // requests
     {
@@ -99,14 +100,29 @@ pub fn device_list() -> yew::Html {
 
                 let button_click_cb = {
                     let device_names = device_names.clone();
+                    let device_edit_names = device_edit_names.clone();
                     Callback::from(move |_| {
                         let device_names = device_names.clone();
-                        wasm_bindgen_futures::spawn_local(async move {
-                            let name = device_names.borrow().get(&(device_id as u32)).cloned();
-                            if let Some(name) = name {
-                                req::request::set_device_name(device_id as u32, name).await.unwrap();
+                        let device_edit_names = device_edit_names.clone();
+                        let data = device_names.borrow().get(&(device_id as u32)).cloned();
+                        let edit_mode: bool = (*device_edit_names).get(&(device_id as u32)).cloned().unwrap_or_default();
+                        info!("{:?}", data);
+                        if let Some(name) = data {
+                            if !edit_mode {
+                                let mut m = (*device_edit_names).clone();
+                                m.insert(device_id as u32, true);
+                                device_edit_names.set(m);
+                             } else {
+                                wasm_bindgen_futures::spawn_local(async move {
+                                        req::request::set_device_name(device_id as u32, name.clone()).await.unwrap();
+                                        device_names.borrow_mut().insert(device_id as u32, name);
+                                        let mut m = (*device_edit_names).clone();
+                                        m.insert(device_id as u32, false);
+                                        device_edit_names.set(m);
+                                });
                             }
-                        });
+                        }
+
                     })
                 };
 
@@ -119,25 +135,28 @@ pub fn device_list() -> yew::Html {
                         device_names.borrow_mut().insert(device_id as u32, value);                 
                     })
                 };
-  
+
+
+                let device_name = device_names.borrow().get_key_value(&(device_id as u32)).as_ref().map_or("/".to_string(), |s| s.1.clone());
+                let device_edit_name: bool = (*device_edit_names).get(&(device_id as u32)).cloned().unwrap_or_default();
+ 
                 html! {
                     <div class="col-xs-3">
                         <div class="panel panel-default">
                             <div class="panel-heading">
-                                <div class="row">
-                                    <div class="col-lg-12">
-                                        <div class="input-group input-group-lg">
-                                            <input type="text" class="form-control" 
-                                                value={device_names.borrow().get_key_value(&(device_id as u32)).as_ref().map_or("/".to_string(), |s| s.1.clone())}
-                                                    onkeyup={name_change_cb}
+                                    <div class="row">
+                                        <div class="col-lg-12">
+                                            <div class="input-group input-group-lg">
+                                                <input type="text" class="form-control" 
+                                                    value={device_name} onkeyup={name_change_cb} disabled={!device_edit_name}
                                                 />
-                                            <span class="input-group-btn">
-                                                <button class="btn btn-default" type="button" onclick={button_click_cb}>{"✎"}</button>
-                                            </span>
+                                                <span class="input-group-btn">
+                                                    <button class="btn btn-default" type="button" onclick={button_click_cb}>{"✎"}</button>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+                             </div>
                             <div class="panel-body">
                                 <img class="device-img center-block" src="media/m1s1.webp"/>
                                 <table class="table table-hover">
