@@ -253,7 +253,7 @@ fn simple_chart(props: &ChartProps) -> Html {
                         x1={MARGIN} y1={MARGIN} xy2={HEIGHT - MARGIN} yx2={WIDTH - MARGIN}
                         tick_len={TICK_LENGTH}
                         grid={true}
-                        title={props.ylabel.clone()} />
+                        title="" />
 
                     <Axis<i64>
                         name="Time"
@@ -266,7 +266,7 @@ fn simple_chart(props: &ChartProps) -> Html {
 
                     <Series<i64, f32>
                         series_type={Type::Line}
-                        name="some-series"
+                        name=""
                         data={&datapoints}
                         horizontal_scale={Rc::clone(&h_scale)}
                         horizontal_scale_step={Duration::days(1).num_milliseconds()}
