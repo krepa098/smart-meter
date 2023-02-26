@@ -141,7 +141,7 @@ pub fn device_list() -> yew::Html {
                 let device_edit_name: bool = (*device_edit_names).get(&(device_id as u32)).cloned().unwrap_or_default();
  
                 html! {
-                    <div class="col-xs-3">
+                    <div class="col-lg-4 col-md-6 col-sm-8 col-xs-12">
                         <div class="panel panel-default">
                             <div class="panel-heading">
                                     <div class="row">
@@ -157,7 +157,6 @@ pub fn device_list() -> yew::Html {
                                                     } else {
                                                         <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>                                                        
                                                     }
-
                                                     </button>
                                                 </span>
                                             </div>
