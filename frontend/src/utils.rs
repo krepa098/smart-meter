@@ -1,6 +1,6 @@
 // pub fn duration_to_now(old: &std::time::Duration) -> std::time::Duration {}
 
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, DurationRound, Local, NaiveDate, Utc};
 use log::info;
 use std::time::Duration;
 
@@ -45,11 +45,36 @@ pub fn js_date_ts_to_utc(timestring: &str) -> DateTime<Utc> {
     ts_utc
 }
 
+pub fn js_date_ts_to_naive(timestring: &str) -> NaiveDate {
+    chrono::NaiveDate::parse_from_str(timestring, "%Y-%m-%d").unwrap()
+}
+
 pub fn utc_to_js(datetime: &DateTime<Utc>) -> String {
     let local_ts: DateTime<Local> = DateTime::from(*datetime);
     let local_ts_str = local_ts.format("%Y-%m-%d").to_string();
     info!("{}", local_ts_str);
     local_ts_str
+}
+
+pub fn naive_date_to_js(date: &NaiveDate) -> String {
+    date.format("%Y-%m-%d").to_string()
+}
+
+pub fn now_start_of_day() -> DateTime<Utc> {
+    DateTime::<Utc>::from(
+        Local::now()
+            .duration_trunc(chrono::Duration::days(1))
+            .unwrap(),
+    )
+}
+
+pub fn now_end_of_day() -> DateTime<Utc> {
+    DateTime::<Utc>::from(
+        Local::now()
+            .duration_trunc(chrono::Duration::days(1))
+            .unwrap()
+            + chrono::Duration::days(1),
+    )
 }
 
 // pub fn stats

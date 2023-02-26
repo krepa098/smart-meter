@@ -4,7 +4,7 @@ use crate::{
     req::{self, DeviceInfo, MeasurementInfo, MeasurementMask, MeasurementType},
     utils,
 };
-use chrono::{DateTime, Local, Utc};
+use chrono::{Date, DateTime, Local, NaiveDate, Utc};
 use log::info;
 use wasm_bindgen::JsCast;
 use web_sys::{EventTarget, HtmlInputElement};
@@ -23,10 +23,10 @@ pub struct Props {
     pub meas_mask: MeasurementMask,
 
     // dates
-    pub on_from_date_changed: Callback<DateTime<Utc>>,
-    pub on_to_date_changed: Callback<DateTime<Utc>>,
-    pub from_date: DateTime<Utc>,
-    pub to_date: DateTime<Utc>,
+    pub on_from_date_changed: Callback<NaiveDate>,
+    pub on_to_date_changed: Callback<NaiveDate>,
+    pub from_date: NaiveDate,
+    pub to_date: NaiveDate,
 
     // device
     pub on_device_id_changed: Callback<u32>,
@@ -40,8 +40,8 @@ pub enum Msg {
 }
 
 pub struct Model {
-    pub ts_max: Option<DateTime<Utc>>,
-    pub ts_min: Option<DateTime<Utc>>,
+    pub ts_max: Option<NaiveDate>,
+    pub ts_min: Option<NaiveDate>,
     pub devices: Option<Vec<DeviceInfo>>,
     pub device_names: HashMap<u32, String>,
 }
@@ -103,8 +103,8 @@ impl Component for Model {
             let target: Option<web_sys::EventTarget> = e.target();
             let input = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
             let timestring = input.unwrap().value();
-            let ts_utc: DateTime<Utc> = utils::js_date_ts_to_utc(&timestring);
-            cb.emit(ts_utc);
+            let date = utils::js_date_ts_to_naive(&timestring);
+            cb.emit(date);
         });
 
         let cb = ctx.props().on_to_date_changed.clone();
@@ -112,8 +112,8 @@ impl Component for Model {
             let target: Option<web_sys::EventTarget> = e.target();
             let input = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
             let timestring = input.unwrap().value();
-            let ts_utc: DateTime<Utc> = utils::js_date_ts_to_utc(&timestring);
-            cb.emit(ts_utc);
+            let date = utils::js_date_ts_to_naive(&timestring);
+            cb.emit(date);
         });
 
         let cb = ctx.props().on_device_id_changed.clone();
@@ -125,10 +125,8 @@ impl Component for Model {
             cb.emit(value);
         });
 
-        let local_ts_from: DateTime<Local> = DateTime::from(ctx.props().from_date);
-        let local_ts_to: DateTime<Local> = DateTime::from(ctx.props().to_date);
-        let ts_from = local_ts_from.format("%Y-%m-%d").to_string();
-        let ts_to = local_ts_to.format("%Y-%m-%d").to_string();
+        let ts_from = ctx.props().from_date.format("%Y-%m-%d").to_string();
+        let ts_to = ctx.props().to_date.format("%Y-%m-%d").to_string();
 
         let device_ids = self.device_names.keys();
         let device_list: Vec<_> = device_ids
@@ -163,8 +161,8 @@ impl Component for Model {
                         <div class="input-group col-md-12">
                             <span class="input-group-addon width-70" id="basic-addon3">{"From"}</span>
                             <input type="date" class="form-control" onchange={ts_from_cb} value={ts_from}
-                                min={self.ts_min.as_ref().map(utils::utc_to_js)}
-                                max={self.ts_max.as_ref().map(utils::utc_to_js)}
+                                min={self.ts_min.as_ref().map(utils::naive_date_to_js)}
+                                max={self.ts_max.as_ref().map(utils::naive_date_to_js)}
                             />
                         </div>
                     </div>
@@ -174,8 +172,8 @@ impl Component for Model {
                         <div class="input-group col-md-12">
                             <span class="input-group-addon width-70" id="basic-addon3">{"To"}</span>
                             <input type="date" class="form-control" onchange={ts_to_cb} value={ts_to}
-                                min={self.ts_min.as_ref().map(utils::utc_to_js)}
-                                max={self.ts_max.as_ref().map(utils::utc_to_js)}
+                                min={self.ts_min.as_ref().map(utils::naive_date_to_js)}
+                                max={self.ts_max.as_ref().map(utils::naive_date_to_js)}
                             />
                         </div>
                     </div>
@@ -190,8 +188,8 @@ impl Component for Model {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::MeasurementInfoReceived(m) => {
-                self.ts_max = Some(utils::utc_from_millis(m.to_timestamp));
-                self.ts_min = Some(utils::utc_from_millis(m.from_timestamp));
+                self.ts_max = Some(utils::utc_from_millis(m.to_timestamp).date_naive());
+                self.ts_min = Some(utils::utc_from_millis(m.from_timestamp).date_naive());
                 true
             }
             Msg::DeviceInfoReceived(m) => {

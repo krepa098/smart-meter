@@ -2,7 +2,7 @@ use crate::{
     req::{self, MeasurementMask, MeasurementRequestResponse, MeasurementType},
     utils,
 };
-use chrono::{prelude::*, Duration, DurationRound};
+use chrono::{prelude::*, Days, Duration, DurationRound};
 use log::info;
 use std::rc::Rc;
 use utils::Stats;
@@ -33,8 +33,8 @@ pub struct Model {
 #[derive(Properties, PartialEq)]
 pub struct ModelProps {
     pub measurement_mask: MeasurementMask,
-    pub from_date: DateTime<Utc>,
-    pub to_date: DateTime<Utc>,
+    pub from_date: NaiveDate,
+    pub to_date: NaiveDate,
 }
 
 impl Component for Model {
@@ -73,33 +73,56 @@ impl Component for Model {
             ("Battery Voltage in mV", MeasurementType::BatVoltage, 1000.0),
         ];
 
+        let from_ts: DateTime<Utc> = DateTime::from(
+            ctx.props()
+                .from_date
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_local_timezone(Local)
+                .unwrap(),
+        );
+        let to_ts: DateTime<Utc> = DateTime::from(
+            (ctx.props().to_date + Days::new(1))
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_local_timezone(Local)
+                .unwrap(),
+        );
+
         let mask = ctx.props().measurement_mask;
-        let charts_html: Vec<_> = chart_types.iter().map(|(desc, ty, scale)| {
-            if mask.is_set(*ty) {
-                html! {
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">{desc.to_string()}</h3>
-                        </div>
-                        <div class="panel-body">
-                            <div class="row">
-                                if let Some(measurements) = self.measurements.as_ref() {
-                                    <div class="col-md-12">
-                                        <SimpleChart ylabel={desc.to_string()} datapoints={measurements.timestamps
-                                                .iter()
-                                                .zip(&measurements.data[&(*ty as u32)])
-                                                .map(|(a, b)| (*a, *b * *scale))
-                                                .collect::<Vec<_>>()}/>
-                                    </div>
-                                }
+        let charts_html: Vec<_> = chart_types
+            .iter()
+            .map(|(desc, ty, scale)| {
+                if mask.is_set(*ty) {
+                    html! {
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h3 class="panel-title">{desc.to_string()}</h3>
+                            </div>
+                            <div class="panel-body">
+                                <div class="row">
+                                    if let Some(measurements) = self.measurements.as_ref() {
+                                        <div class="col-md-12">
+                                            <SimpleChart ylabel={desc.to_string()}
+                                                datapoints={measurements.timestamps
+                                                    .iter()
+                                                    .zip(&measurements.data[&(*ty as u32)])
+                                                    .map(|(a, b)| (*a, *b * *scale))
+                                                    .collect::<Vec<_>>()}
+                                                {from_ts}
+                                                {to_ts}
+                                            />
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    }
+                } else {
+                    html! {}
                 }
-            } else {
-                html!{}
-            }
-        }).collect();
+            })
+            .collect();
 
         // html
         html! {
@@ -123,8 +146,23 @@ impl Component for Model {
 
 impl Model {
     pub fn request_datapoints(&self, ctx: &Context<Self>) {
-        let ts_from = ctx.props().from_date;
-        let ts_to = ctx.props().to_date;
+        let from_ts: DateTime<Utc> = DateTime::from(
+            ctx.props()
+                .from_date
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_local_timezone(Local)
+                .unwrap(),
+        );
+
+        let to_ts: DateTime<Utc> = DateTime::from(
+            (ctx.props().to_date + Days::new(1))
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_local_timezone(Local)
+                .unwrap(),
+        );
+
         // let device_id = self.device_id;
         let device_id = 396891554;
 
@@ -132,8 +170,8 @@ impl Model {
         wasm_bindgen_futures::spawn_local(async move {
             let resp = req::request::measurements(
                 device_id,
-                Some(ts_from),
-                Some(ts_to),
+                Some(from_ts),
+                Some(to_ts),
                 req::MeasurementMask::ALL,
                 10000,
             )
@@ -148,6 +186,8 @@ impl Model {
 pub struct ChartProps {
     ylabel: String,
     datapoints: Vec<(i64, f32)>,
+    from_ts: DateTime<Utc>,
+    to_ts: DateTime<Utc>,
 }
 
 #[function_component(SimpleChart)]
@@ -165,32 +205,13 @@ fn simple_chart(props: &ChartProps) -> Html {
         let datapoints = Rc::new(datapoints);
 
         // axis setup
-        let start_date = utils::utc_from_millis(stats.x_min)
-            .duration_trunc(chrono::Duration::days(1))
-            .unwrap();
-        let end_date = (utils::utc_from_millis(stats.x_max) + chrono::Duration::hours(1))
-            .duration_trunc(chrono::Duration::hours(1))
-            .unwrap();
-        let duration = end_date - start_date;
-
-        info!(
-            "{} {} {}",
-            start_date.day(),
-            start_date.hour(),
-            start_date.minute()
-        );
-        info!(
-            "{} {} {}",
-            end_date.day(),
-            end_date.hour(),
-            end_date.minute()
-        );
+        let duration = props.to_ts - props.from_ts;
 
         // horizontal scale (time)
         let max_div = 12;
         let dd = chrono::Duration::hours(1);
         let dd_div = ((duration.num_hours() / dd.num_hours()) / max_div) as i32;
-        let timespan = start_date..end_date;
+        let timespan = props.from_ts..props.to_ts;
         let h_scale = Rc::new(TimeScale::with_labeller(
             timespan,
             dd * dd_div,
@@ -257,7 +278,7 @@ fn ts_labeller(total_duration: Duration) -> impl yew_chart::time_axis_scale::Lab
         let local_date_time: DateTime<Local> = utc.into();
 
         if total_duration
-            <= Duration::from_std(std::time::Duration::from_secs(60 * 60 * 24 * 2)).unwrap()
+            <= Duration::from_std(std::time::Duration::from_secs(60 * 60 * 24 * 3)).unwrap()
         {
             if local_date_time.hour() == 0
                 && local_date_time.minute() == 0

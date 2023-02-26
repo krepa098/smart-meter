@@ -2,7 +2,7 @@ mod components;
 mod req;
 mod utils;
 
-use chrono::{DateTime, Duration, DurationRound, Utc};
+use chrono::{DateTime, Days, Duration, DurationRound, Local, NaiveDate, Utc};
 use log::info;
 use yew::prelude::*;
 use yew_router::prelude::*;
@@ -35,13 +35,13 @@ pub struct Props {
 
     // dates
     #[prop_or_default]
-    pub on_from_date_changed: Callback<DateTime<Utc>>,
+    pub on_from_date_changed: Callback<NaiveDate>,
     #[prop_or_default]
-    pub on_to_date_changed: Callback<DateTime<Utc>>,
+    pub on_to_date_changed: Callback<NaiveDate>,
     #[prop_or_default]
-    pub from_date: DateTime<Utc>,
+    pub from_date: NaiveDate,
     #[prop_or_default]
-    pub to_date: DateTime<Utc>,
+    pub to_date: NaiveDate,
 
     // device
     #[prop_or_default]
@@ -62,11 +62,11 @@ impl Component for Model {
         Self {}
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
         false
     }
 
-    fn view(&self, ctx: &Context<Self>) -> Html {
+    fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <BrowserRouter>
                 <Switch<Route> render={switch} />
@@ -118,21 +118,20 @@ pub fn page_readings() -> Html {
     };
 
     // datetime
-    let to_date_handle = use_state_eq(Utc::now);
-    let from_date_handle =
-        use_state_eq(|| Utc::now().duration_trunc(Duration::days(1)).unwrap() - Duration::days(1));
+    let to_date_handle = use_state_eq(|| Local::now().date_naive());
+    let from_date_handle = use_state_eq(|| Local::now().date_naive() - Days::new(1));
 
-    let on_from_date_changed: Callback<DateTime<Utc>> = {
+    let on_from_date_changed: Callback<NaiveDate> = {
         let handle = from_date_handle.clone();
-        Callback::from(move |datetime| {
-            handle.set(datetime);
+        Callback::from(move |date| {
+            handle.set(date);
         })
     };
 
-    let on_to_date_changed: Callback<DateTime<Utc>> = {
+    let on_to_date_changed: Callback<NaiveDate> = {
         let handle = to_date_handle.clone();
-        Callback::from(move |datetime| {
-            handle.set(datetime);
+        Callback::from(move |date| {
+            handle.set(date);
         })
     };
 
