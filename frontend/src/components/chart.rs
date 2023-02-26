@@ -266,7 +266,7 @@ fn simple_chart(props: &ChartProps) -> Html {
 
                     <Series<i64, f32>
                         series_type={Type::Line}
-                        name=""
+                        name="some-series"
                         data={&datapoints}
                         horizontal_scale={Rc::clone(&h_scale)}
                         horizontal_scale_step={Duration::days(1).num_milliseconds()}
