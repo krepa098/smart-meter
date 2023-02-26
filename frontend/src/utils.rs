@@ -19,62 +19,20 @@ pub fn utc_now() -> DateTime<Utc> {
     chrono::Utc::now()
 }
 
-// offset in hours
-pub fn timezone_offset() -> i32 {
-    let offset_in_sec = Local::now().offset().local_minus_utc();
-    offset_in_sec / 60 / 60
-}
-
-pub fn js_datetime_ts_to_utc(timestring: &str) -> DateTime<Utc> {
-    let ts = chrono::NaiveDateTime::parse_from_str(timestring, "%Y-%m-%dT%H:%M")
-        .unwrap()
-        .and_local_timezone(Local)
-        .unwrap();
-    let ts_utc: DateTime<Utc> = DateTime::from(ts);
-    ts_utc
-}
-
-pub fn js_date_ts_to_utc(timestring: &str) -> DateTime<Utc> {
-    let ts = chrono::NaiveDate::parse_from_str(timestring, "%Y-%m-%d")
-        .unwrap()
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_local_timezone(Local)
-        .unwrap();
-    let ts_utc: DateTime<Utc> = DateTime::from(ts);
-    ts_utc
-}
-
 pub fn js_date_ts_to_naive(timestring: &str) -> NaiveDate {
     chrono::NaiveDate::parse_from_str(timestring, "%Y-%m-%d").unwrap()
-}
-
-pub fn utc_to_js(datetime: &DateTime<Utc>) -> String {
-    let local_ts: DateTime<Local> = DateTime::from(*datetime);
-    let local_ts_str = local_ts.format("%Y-%m-%d").to_string();
-    info!("{}", local_ts_str);
-    local_ts_str
 }
 
 pub fn naive_date_to_js(date: &NaiveDate) -> String {
     date.format("%Y-%m-%d").to_string()
 }
 
-pub fn now_start_of_day() -> DateTime<Utc> {
-    DateTime::<Utc>::from(
-        Local::now()
-            .duration_trunc(chrono::Duration::days(1))
-            .unwrap(),
-    )
+pub fn ceil_multiple(val: f32, q: f32) -> f32 {
+    (val / q).ceil() * q
 }
 
-pub fn now_end_of_day() -> DateTime<Utc> {
-    DateTime::<Utc>::from(
-        Local::now()
-            .duration_trunc(chrono::Duration::days(1))
-            .unwrap()
-            + chrono::Duration::days(1),
-    )
+pub fn floor_multiple(val: f32, q: f32) -> f32 {
+    (val / q).floor() * q
 }
 
 // pub fn stats

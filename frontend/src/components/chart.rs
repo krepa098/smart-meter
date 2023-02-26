@@ -59,11 +59,21 @@ impl Component for Model {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let chart_types = [
-            ("Temperature in °C", MeasurementType::Temperature, 1.0),
-            ("Humidity in %", MeasurementType::Humidity, 1.0),
-            ("Pressure in hPa", MeasurementType::Pressure, 1.0 / 100.0),
-            ("Air Quality", MeasurementType::AirQuality, 1.0),
-            ("Battery Voltage in mV", MeasurementType::BatVoltage, 1000.0),
+            ("Temperature in °C", MeasurementType::Temperature, 1.0, 0.5),
+            ("Humidity in %", MeasurementType::Humidity, 1.0, 5.0),
+            (
+                "Pressure in hPa",
+                MeasurementType::Pressure,
+                1.0 / 100.0,
+                10.0,
+            ),
+            ("Air Quality", MeasurementType::AirQuality, 1.0, 25.0),
+            (
+                "Battery Voltage in mV",
+                MeasurementType::BatVoltage,
+                1000.0,
+                100.0,
+            ),
         ];
 
         let from_ts: DateTime<Utc> = DateTime::from(
@@ -85,7 +95,7 @@ impl Component for Model {
         let mask = ctx.props().measurement_mask;
         let charts_html: Vec<_> = chart_types
             .iter()
-            .map(|(desc, ty, scale)| {
+            .map(|(desc, ty, scale, optimal_div)| {
                 if mask.is_set(*ty) {
                     html! {
                         <div class="panel panel-default">
@@ -104,6 +114,8 @@ impl Component for Model {
                                                     .collect::<Vec<_>>()}
                                                 {from_ts}
                                                 {to_ts}
+                                                {optimal_div}
+                                                max_div={8}
                                             />
                                         </div>
                                     }
@@ -180,6 +192,8 @@ pub struct ChartProps {
     datapoints: Vec<(i64, f32)>,
     from_ts: DateTime<Utc>,
     to_ts: DateTime<Utc>,
+    max_div: u32,
+    optimal_div: f32,
 }
 
 #[function_component(SimpleChart)]
@@ -211,11 +225,20 @@ fn simple_chart(props: &ChartProps) -> Html {
         )) as Rc<dyn Scale<Scalar = _>>;
 
         // vertical scale (measurements)
-        let max_div = 8;
-        let div = ((stats.y_max.ceil() + 1.0) - (stats.y_min.floor() - 1.0)) / max_div as f32;
+        let optimal_div = props.optimal_div;
+        let max_div = props.max_div;
+        let y_max = utils::ceil_multiple(stats.y_max, optimal_div);
+        let y_min = utils::floor_multiple(stats.y_min, optimal_div);
+
+        let range = y_max - y_min;
+        let q = ((range / optimal_div) / (max_div as f32)).ceil();
+        let steps = optimal_div * q;
+        let y_max = utils::ceil_multiple(stats.y_max, optimal_div * q);
+        let y_min = utils::floor_multiple(stats.y_min, optimal_div * q);
+
         let v_scale = Rc::new(LinearScale::with_labeller(
-            stats.y_min.floor() - 1.0..stats.y_max.ceil() + 1.0,
-            div,
+            y_min..y_max,
+            steps,
             Some(Rc::from(linear_scale_labeller())),
         )) as Rc<dyn Scale<Scalar = _>>;
         let tooltip = Rc::from(series::y_tooltip()) as Rc<dyn Tooltipper<_, _>>;
