@@ -20,18 +20,17 @@ const MARGIN: f32 = 50.0;
 const TICK_LENGTH: f32 = 15.0;
 
 pub enum Msg {
-    DeviceIDChanged(u32),
     MeasurementsReceived(MeasurementRequestResponse),
 }
 
 pub struct Model {
     measurements: Option<MeasurementRequestResponse>,
     measurements_from_ts: Option<DateTime<Utc>>, // oldest available measurement
-    device_id: u32,
 }
 
 #[derive(Properties, PartialEq)]
 pub struct ModelProps {
+    pub device_id: Option<u32>,
     pub measurement_mask: MeasurementMask,
     pub from_date: NaiveDate,
     pub to_date: NaiveDate,
@@ -46,17 +45,11 @@ impl Component for Model {
         Self {
             measurements: None,
             measurements_from_ts: None,
-            device_id: 396891554,
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::DeviceIDChanged(id) => {
-                self.device_id = id;
-                self.request_datapoints(ctx);
-                false
-            }
             Msg::MeasurementsReceived(dp) => {
                 self.measurements = Some(dp);
                 true
@@ -163,22 +156,21 @@ impl Model {
                 .unwrap(),
         );
 
-        // let device_id = self.device_id;
-        let device_id = 396891554;
+        if let Some(device_id) = ctx.props().device_id {
+            let link = ctx.link().clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let resp = req::request::measurements(
+                    device_id,
+                    Some(from_ts),
+                    Some(to_ts),
+                    req::MeasurementMask::ALL,
+                    10000,
+                )
+                .await;
 
-        let link = ctx.link().clone();
-        wasm_bindgen_futures::spawn_local(async move {
-            let resp = req::request::measurements(
-                device_id,
-                Some(from_ts),
-                Some(to_ts),
-                req::MeasurementMask::ALL,
-                10000,
-            )
-            .await;
-
-            link.send_message(Msg::MeasurementsReceived(resp));
-        });
+                link.send_message(Msg::MeasurementsReceived(resp));
+            });
+        }
     }
 }
 

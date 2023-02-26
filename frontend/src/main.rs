@@ -156,6 +156,7 @@ pub fn page_readings() -> Html {
                     <h1 class="page-header">{"Readings"}</h1>
                     <div class="box-center">
                         <components::chart::Model
+                            device_id={*device_id_handle}
                             measurement_mask={*meas_mask_handle}
                             to_date={*to_date_handle} from_date={*from_date_handle}
                         />
