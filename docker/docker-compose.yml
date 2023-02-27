@@ -1,0 +1,24 @@
+version: "2"
+services:
+  thrsensor:
+    image: "thrsensor"
+    ports:
+      - "80:80"
+      - "8081:8081"
+      - "8989:8989"
+    volumes:
+      - "/share/Container/thrsensor:/data:rw"
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Europe/Luxembourg
+    restart: always
+    hostname: thrsensor
+    networks:
+      qnet-static-eth0-b03c93:
+        ipv4_address: 192.168.178.199
+        
+
+networks:
+  qnet-static-eth0-b03c93:
+    external: true 
