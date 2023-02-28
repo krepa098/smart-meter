@@ -7,7 +7,7 @@ use actix_cors::Cors;
 use actix_web::{
     get,
     http::header,
-    put,
+    middleware, put,
     web::{self, Data},
     App, HttpResponse, HttpServer, Responder,
 };
@@ -144,6 +144,7 @@ pub async fn new_http_server(db: Arc<Mutex<Db>>) -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(Data::new(db.clone()))
+            .wrap(middleware::Compress::default())
             .service(hello)
             .service(api_measurements_by_date)
             .service(api_measurements_all)
