@@ -25,7 +25,7 @@ impl BatMonitor {
         let bat_adc = self.read()?;
 
         // 12 bit adc, 2.5V @ 11dB
-        let voltage = bat_adc as f32 * 4.17 / (0xFFF as f32) * 2.0;
+        let voltage = bat_adc as f32 * 4.13 / (0xFFF as f32) * 2.0;
 
         Ok(voltage)
     }
