@@ -4,7 +4,7 @@ use crate::{
     req::{self, DeviceInfo, MeasurementInfo, MeasurementMask, MeasurementType},
     utils,
 };
-use chrono::{Date, DateTime, Local, NaiveDate, Utc};
+use chrono::NaiveDate;
 use log::info;
 use wasm_bindgen::JsCast;
 use web_sys::{EventTarget, HtmlInputElement};
