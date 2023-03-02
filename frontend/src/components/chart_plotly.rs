@@ -1,6 +1,9 @@
 use chrono::{DateTime, Local, Utc};
 use log::info;
-use plotly::{layout::Margin, Configuration, Layout, Plot, Scatter};
+use plotly::{
+    layout::{Axis, Margin},
+    Configuration, Layout, Plot, Scatter,
+};
 use yew::prelude::*;
 
 use crate::utils;
@@ -36,11 +39,20 @@ pub fn chart_plotly(props: &Props) -> Html {
                 .editable(false)
                 .display_mode_bar(plotly::configuration::DisplayModeBar::Hover),
         );
+
+        let from_ts_str = DateTime::<Local>::from(props.from_ts)
+            .format("%Y-%m-%d %H:%M:%S")
+            .to_string();
+        let to_ts_str = DateTime::<Local>::from(props.to_ts)
+            .format("%Y-%m-%d %H:%M:%S")
+            .to_string();
+
         plot.set_layout(
             Layout::default()
                 .hover_mode(plotly::layout::HoverMode::XUnified)
                 .auto_size(true)
-                .margin(Margin::default().top(20).bottom(40).left(40).right(20)),
+                .margin(Margin::default().top(20).bottom(40).left(40).right(20))
+                .x_axis(Axis::new().range(vec![from_ts_str, to_ts_str])),
         );
 
         async move {
