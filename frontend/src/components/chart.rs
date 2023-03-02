@@ -2,6 +2,8 @@ use crate::req::{self, MeasurementMask, MeasurementRequestResponse, MeasurementT
 use chrono::{prelude::*, Days};
 use yew::prelude::*;
 
+use super::chart_plotly::Overlay;
+
 pub enum Msg {
     MeasurementsReceived(MeasurementRequestResponse),
 }
@@ -43,11 +45,41 @@ impl Component for Model {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let chart_types = [
-            ("Temperature", "°C", MeasurementType::Temperature, 1.0),
-            ("Humidity", "%", MeasurementType::Humidity, 1.0),
-            ("Pressure", "hPa", MeasurementType::Pressure, 1.0 / 100.0),
-            ("Air Quality", "IAQ", MeasurementType::AirQuality, 1.0),
-            ("Battery Voltage", "V", MeasurementType::BatVoltage, 1.0),
+            (
+                "Temperature",
+                "°C",
+                MeasurementType::Temperature,
+                1.0,
+                Overlay::None,
+            ),
+            (
+                "Humidity",
+                "%",
+                MeasurementType::Humidity,
+                1.0,
+                Overlay::None,
+            ),
+            (
+                "Pressure",
+                "hPa",
+                MeasurementType::Pressure,
+                1.0 / 100.0,
+                Overlay::None,
+            ),
+            (
+                "Air Quality",
+                "IAQ",
+                MeasurementType::AirQuality,
+                1.0,
+                Overlay::IAQ,
+            ),
+            (
+                "Battery Voltage",
+                "V",
+                MeasurementType::BatVoltage,
+                1.0,
+                Overlay::None,
+            ),
         ];
 
         let from_ts: DateTime<Utc> = DateTime::from(
@@ -69,7 +101,7 @@ impl Component for Model {
         let mask = ctx.props().measurement_mask;
         let charts_html: Vec<_> = chart_types
             .iter()
-            .map(|(id, unit, ty, scale)| {
+            .map(|(id, unit, ty, scale, overlay)| {
                 if mask.is_set(*ty) {
                     html! {
                         <div class="panel panel-default">
@@ -86,6 +118,7 @@ impl Component for Model {
                                                 {from_ts}
                                                 {to_ts}
                                                 req_ts={self.req_ts}
+                                                overlay={*overlay}
                                                 datapoints={measurements.timestamps
                                                     .iter()
                                                     .zip(&measurements.data[&(*ty as u32)])
