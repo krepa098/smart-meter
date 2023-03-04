@@ -20,6 +20,10 @@ pub struct WiFi {
     wifi: Box<EspWifi<'static>>,
     sys_loop: EspSystemEventLoop,
     ssid: Option<String<32>>,
+
+    // cached
+    cached_channel: Option<u8>,
+    cached_bssid: Option<[u8; 6]>,
 }
 
 impl WiFi {
@@ -31,6 +35,8 @@ impl WiFi {
             wifi: Box::new(EspWifi::new(modem, sys_loop.clone(), None)?),
             sys_loop,
             ssid: None,
+            cached_bssid: None,
+            cached_channel: None,
         })
     }
 
@@ -42,10 +48,10 @@ impl WiFi {
     pub fn start(&mut self, credentials: &Credentials) -> Result<()> {
         let client_config = ClientConfiguration {
             ssid: credentials.ssid.to_owned(),
-            bssid: None, // TODO: cache to reconnect faster?
             auth_method: embedded_svc::wifi::AuthMethod::WPA2Personal,
             password: credentials.pw.clone(),
-            channel: None, // TODO: cache to reconnect faster?
+            channel: self.cached_channel,
+            bssid: self.cached_bssid,
         };
         self.ssid = Some(credentials.ssid.to_owned());
         self.wifi
@@ -95,6 +101,25 @@ impl WiFi {
 
             std::thread::sleep(Duration::from_secs(5));
         }
+
+        // cache for faster reconnect
+        self.cached_bssid = self
+            .wifi
+            .driver()
+            .get_configuration()
+            .unwrap()
+            .as_client_conf_ref()
+            .unwrap()
+            .bssid;
+
+        self.cached_channel = self
+            .wifi
+            .driver()
+            .get_configuration()
+            .unwrap()
+            .as_client_conf_ref()
+            .unwrap()
+            .channel;
 
         Ok(())
     }
