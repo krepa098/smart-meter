@@ -1,6 +1,6 @@
 [package]
 name = "firmware-m1s1"
-version = "0.2.0"
+version = "0.3.1"
 authors = ["Paul <krepa098@gmail.com>"]
 edition = "2021"
 resolver = "2"
@@ -22,17 +22,17 @@ esp-idf-svc = { version = "0.45.0", features = [] }
 embedded-svc = "0.24.0"
 embedded-hal = "0.2.7"
 
-anyhow = "1.0.68"
-heapless = "0.7"
-serde = "1.0.151"
+anyhow = "1.0.69"
+heapless = "0.7.16"
+serde = "1.0.152"
 log = "0.4.17"
 bitbybit = "1.1.2"
-arbitrary-int = "1.2.0"
-num_enum = "0.5.7"
+arbitrary-int = "1.2.3"
+num_enum = "0.5.11"
 protocol = "3.4.0"
-dotenvy = "0.15"
+dotenvy = "0.15.6"
 
 [build-dependencies]
 embuild = "0.31.0"
-anyhow = "1"
+anyhow = "1.0.69"
 bindgen = "0.64.0"

@@ -53,7 +53,10 @@ const DEVICE_MODEL: &str = "M1S1";
 // --------------------------------------------------------------------
 //
 // flash command:
-// cargo build && espflash /dev/ttyACM0 target/riscv32imc-esp-espidf/debug/firmware-m1s1 --monitor --speed 921600
+// debug
+//  cargo build && espflash /dev/ttyACM0 target/riscv32imc-esp-espidf/debug/firmware-m1s1 --monitor --speed 921600
+// release
+//  cargo build --release && espflash /dev/ttyACM0 target/riscv32imc-esp-espidf/debug/firmware-m1s1 --monitor --speed 921600
 //
 // --------------------------------------------------------------------
 
@@ -61,8 +64,6 @@ const DEVICE_MODEL: &str = "M1S1";
 fn main() -> anyhow::Result<()> {
     esp_idf_sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
-
-    std::thread::sleep(Duration::from_millis(2000));
 
     let part = esp_idf_svc::nvs::EspDefaultNvsPartition::take()?;
     let _nvs = esp_idf_svc::nvs::EspNvs::new(part, "default", true);
@@ -132,7 +133,7 @@ fn main() -> anyhow::Result<()> {
     // peripherals
     let peripherals = Peripherals::take().unwrap();
 
-    // configure wakeup pin for and light sleep
+    // configure wakeup pin and light sleep
     let mut lightsleep = LightSleep::new(peripherals.pins.gpio3.into())?;
 
     // RGB led
