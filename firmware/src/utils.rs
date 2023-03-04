@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use anyhow::{bail, Result};
 use esp_idf_hal::gpio::{AnyIOPin, Input, PinDriver};
-use esp_idf_sys::{esp, esp_efuse_mac_get_default};
+use esp_idf_sys::esp_efuse_mac_get_default;
 
-pub fn mac_addr() -> Result<([u8; 6])> {
+pub fn mac_addr() -> Result<[u8; 6]> {
     let mut mac = [0_u8; 6];
     let ret = unsafe { esp_efuse_mac_get_default(mac.as_mut_ptr()) };
     if ret != 0 {
