@@ -13,4 +13,4 @@ cd /usr/local/bin/backend && diesel migration run
 /usr/local/bin/backend/backend &
 
 # run frontend
-cd /usr/local/bin/src/frontend && trunk serve --release --address=$TRUNK_ADDRESS --port=$TRUNK_PORT
+cd /usr/local/bin/frontend && trunk serve --release --address=$TRUNK_ADDRESS --port=$TRUNK_PORT

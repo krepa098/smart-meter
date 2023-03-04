@@ -27,9 +27,10 @@ ADD scripts /usr/local/scripts
 RUN mkdir -p /usr/local/bin && \
     cd /src/smart-meter/backend && \ 
     cargo b --release && \
+    mv target/release/backend ../backend && \
+    rm -rf target && \
     cd / && \
-    mv /src/smart-meter/backend/target/release/backend /usr/local/bin/backend && \
-    rm -rf /src/smart-meter/backend
+    mv /src/smart-meter/backend /usr/local/bin/backend
 
 # build frontend
 RUN rustup target add wasm32-unknown-unknown
