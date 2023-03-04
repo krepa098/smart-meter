@@ -1,5 +1,8 @@
 use anyhow::Result;
-use esp_idf_hal::{adc, gpio};
+use esp_idf_hal::{
+    adc::{self, config::Resolution},
+    gpio,
+};
 
 pub struct BatMonitor {
     driver: adc::AdcDriver<'static, adc::ADC1>,
@@ -10,22 +13,30 @@ impl BatMonitor {
     pub fn new(adc1: esp_idf_hal::adc::ADC1, pin: gpio::Gpio1) -> Result<Self> {
         let channel: adc::AdcChannelDriver<_, adc::Atten11dB<adc::ADC1>> =
             adc::AdcChannelDriver::new(pin)?;
-        let driver =
-            esp_idf_hal::adc::AdcDriver::new(adc1, &adc::config::Config::new().calibration(true))?;
+        let driver = esp_idf_hal::adc::AdcDriver::new(
+            adc1,
+            &adc::config::Config::new()
+                .calibration(true)
+                .resolution(Resolution::Resolution12Bit),
+        )?;
 
         Ok(Self { driver, channel })
     }
 
     pub fn read(&mut self) -> Result<u16> {
-        let bat_adc = self.driver.read(&mut self.channel)?;
+        let bat_adc = self.driver.read(&mut self.channel)?; // mV!
+
         Ok(bat_adc)
     }
 
     pub fn read_voltage(&mut self) -> Result<f32> {
-        let bat_adc = self.read()?;
+        let bat_mv = self.read()?;
 
-        // 12 bit adc, 2.5V @ 11dB
-        let voltage = bat_adc as f32 * 4.13 / (0xFFF as f32) * 2.0;
+        // 12 bit adc, 2.45V @ 11dB
+        let r1 = 10.0;
+        let r2 = 10.0;
+        let vout_over_vin = (r1 + r2) / r2;
+        let voltage = bat_mv as f32 / 1000.0 * vout_over_vin;
 
         Ok(voltage)
     }
