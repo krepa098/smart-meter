@@ -10,7 +10,9 @@ export DATABASE_URL="/data/database.db"
 cd /usr/local/bin/backend && diesel migration run
 
 # run backend
+echo "Launching backend..."
 /usr/local/bin/backend/backend &
 
 # run frontend
+echo "Launching frontend..."
 cd /usr/local/bin/frontend && trunk serve --release --address=$TRUNK_ADDRESS --port=$TRUNK_PORT

@@ -29,7 +29,7 @@ ADD scripts /usr/local/scripts
 # build backend
 WORKDIR /src/smart-meter/backend
 RUN cargo b --release
-RUN mv target/release/backend ../backend
+RUN mv target/release/backend backend
 RUN rm -rf target
 
 # build frontend
