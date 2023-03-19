@@ -1,8 +1,8 @@
-use crate::req::{self, MeasurementMask, MeasurementRequestResponse, MeasurementType};
-use chrono::{prelude::*, Days};
-use yew::prelude::*;
-
 use super::chart_plotly::Overlay;
+use crate::req_utils;
+use chrono::{prelude::*, Days};
+use common::req::{self, MeasurementMask, MeasurementRequestResponse, MeasurementType};
+use yew::prelude::*;
 
 pub enum Msg {
     MeasurementsReceived(MeasurementRequestResponse),
@@ -179,7 +179,7 @@ impl Model {
         if let Some(device_id) = ctx.props().device_id {
             let link = ctx.link().clone();
             wasm_bindgen_futures::spawn_local(async move {
-                let resp = req::request::measurements(
+                let resp = req_utils::request::measurements(
                     device_id,
                     Some(from_ts),
                     Some(to_ts),

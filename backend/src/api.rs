@@ -12,10 +12,8 @@ use actix_web::{
     App, HttpResponse, HttpServer, Responder,
 };
 
-use crate::{
-    db::{models, Db},
-    req::MeasurementInfo,
-};
+use crate::db::{models, Db};
+use common::req::MeasurementInfo;
 
 #[get("/")]
 async fn hello(_db: web::Data<Arc<Mutex<Db>>>) -> impl Responder {

@@ -1,13 +1,14 @@
 use std::{time::Duration, collections::HashMap};
 use log::info;
 use wasm_bindgen::JsCast;
-use web_sys::{Event, KeyboardEvent};
+use web_sys::{KeyboardEvent};
 use yew::{function_component, html, use_state, Callback, use_mut_ref};
 
 use crate::{
-    req::{self, MeasurementType},
+    req_utils,
     utils,
 };
+use common::req::{MeasurementType, MeasurementMask};
 
 const NOT_AVAILABLE: &str = "N/A";
 
@@ -25,7 +26,7 @@ pub fn device_list() -> yew::Html {
 
         if devices.is_none() {
             wasm_bindgen_futures::spawn_local(async move {
-                devices.set(Some(req::request::device_infos().await));
+                devices.set(Some(req_utils::request::device_infos().await));
             });
         }
     }
@@ -43,20 +44,20 @@ pub fn device_list() -> yew::Html {
 
                 for dev in devices.as_ref().unwrap() {
                     let id = dev.device_id;
-                    let resp = req::request::measurements(
+                    let resp = req_utils::request::measurements(
                         dev.device_id as u32,
                         None,
                         None,
-                        req::MeasurementMask::ALL,
+                        MeasurementMask::ALL,
                         1,
                     )
                     .await;
                     measurements.insert(id, resp);
 
-                    let resp = req::request::measurement_info(dev.device_id as u32).await;
+                    let resp = req_utils::request::measurement_info(dev.device_id as u32).await;
                     measurement_infos.insert(id, resp);
 
-                    let dev_name_resp = req::request::device_name(dev.device_id as u32).await;
+                    let dev_name_resp = req_utils::request::device_name(dev.device_id as u32).await;
                     let dev_name = dev_name_resp.map_or(format!("{} (unnamed)", dev.device_id as u32), |v| v);
                     names.insert(dev.device_id as u32, dev_name);
                 }
@@ -114,7 +115,7 @@ pub fn device_list() -> yew::Html {
                                 device_edit_names.set(m);
                              } else {
                                 wasm_bindgen_futures::spawn_local(async move {
-                                        req::request::set_device_name(device_id as u32, name.clone()).await.unwrap();
+                                        req_utils::request::set_device_name(device_id as u32, name.clone()).await.unwrap();
                                         device_names.borrow_mut().insert(device_id as u32, name);
                                         let mut m = (*device_edit_names).clone();
                                         m.insert(device_id as u32, false);

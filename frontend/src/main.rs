@@ -1,5 +1,5 @@
 mod components;
-mod req;
+mod req_utils;
 mod utils;
 
 use chrono::{DateTime, Days, Duration, DurationRound, Local, NaiveDate, Utc};
@@ -7,7 +7,7 @@ use log::info;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::req::{MeasurementMask, MeasurementType};
+use common::req::{MeasurementMask, MeasurementType};
 
 #[derive(Clone, Routable, PartialEq)]
 pub enum Route {

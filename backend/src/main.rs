@@ -9,7 +9,7 @@ use tokio::signal;
 
 mod api;
 mod db;
-mod req;
+//mod req;
 mod schema;
 mod utils;
 

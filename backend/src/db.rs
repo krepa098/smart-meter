@@ -1,5 +1,6 @@
-use crate::{req, schema::*, utils};
+use crate::{schema::*, utils};
 use anyhow::{bail, Result};
+use common::req;
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
 use std::env;
