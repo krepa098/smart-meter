@@ -11,7 +11,6 @@ mod wifi;
 use esp_idf_hal::ledc::{config::TimerConfig, LedcDriver, LedcTimerDriver};
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
-use esp_idf_svc::sntp::SyncStatus;
 use esp_idf_sys;
 use log::info;
 use std::env;
@@ -195,16 +194,6 @@ fn main() -> anyhow::Result<()> {
         std::thread::sleep(Duration::from_millis(500));
     }
     led.set_color(&Color::Black);
-
-    // synchronize time (UTC)
-    if wifi.is_connected() {
-        info!("Sync SNTP...");
-        let sntp = esp_idf_svc::sntp::EspSntp::new_default()?;
-        while sntp.get_sync_status() != SyncStatus::Completed {
-            std::thread::sleep(Duration::from_millis(100));
-        }
-        wifi.stop()?;
-    }
 
     std::thread::sleep(Duration::from_millis(3000));
 
