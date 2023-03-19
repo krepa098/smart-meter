@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::req_utils;
+use crate::request;
 use crate::utils;
 use chrono::NaiveDate;
 use common::req::{DeviceInfo, MeasurementInfo, MeasurementMask, MeasurementType};
@@ -222,11 +222,11 @@ impl Component for Model {
             let device_id = ctx.props().device_id;
             let on_device_changed = ctx.props().on_device_id_changed.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                let devices_resp = req_utils::request::device_infos().await;
+                let devices_resp = request::device_infos().await;
 
                 // resolve device names
                 for dev in &devices_resp {
-                    let name_req = req_utils::request::device_name(dev.device_id as u32).await;
+                    let name_req = request::device_name(dev.device_id as u32).await;
                     match name_req {
                         Ok(name) => {
                             link.send_message(Msg::DeviceNameReceived((dev.device_id as u32, name)))
@@ -240,7 +240,7 @@ impl Component for Model {
 
                 // request measurement info for selected device
                 let device_id = device_id.unwrap_or(devices_resp.first().unwrap().device_id as u32);
-                let resp = req_utils::request::measurement_info(device_id).await;
+                let resp = request::measurement_info(device_id).await;
                 link.send_message(Msg::MeasurementInfoReceived(resp));
                 on_device_changed.emit(device_id);
 
