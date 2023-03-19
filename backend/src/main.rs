@@ -2,13 +2,13 @@ use std::sync::{Arc, Mutex};
 
 use actix_web::rt::net::UdpSocket;
 use anyhow::Result;
+use common::packet::{Packet, Payload};
 use dotenvy::dotenv;
 use protocol::wire::{dgram::Pipeline, middleware};
 use tokio::signal;
 
 mod api;
 mod db;
-mod packet;
 mod req;
 mod schema;
 mod utils;
@@ -27,7 +27,7 @@ async fn main() -> Result<()> {
     dotenv().ok();
 
     let middleware = middleware::pipeline::default();
-    let mut pipeline: Pipeline<packet::Packet, middleware::pipeline::Default> = Pipeline::new(
+    let mut pipeline: Pipeline<Packet, middleware::pipeline::Default> = Pipeline::new(
         middleware,
         protocol::Settings {
             byte_order: protocol::ByteOrder::LittleEndian,
@@ -52,12 +52,17 @@ async fn main() -> Result<()> {
                     if let Ok(packet) = packet {
                         let device_id = packet.header.device_id;
 
+                        // calculate timestamp of the packet
+                        // based on the offset relative to the time it was sent
+                        // ignoring network latency
+                        let timestamp = utils::utc_with_offset(packet.header.rel_timestamp);
+
                         match &packet.payload {
-                            packet::Payload::Measurement(mes) => {
+                            Payload::Measurement(mes) => {
                                 if let Ok(mut db) = db.lock() {
                                     db.insert_measurement(&db::models::NewDeviceMeasurement {
                                         device_id: device_id as i32,
-                                        timestamp: mes.timestamp as i64,
+                                        timestamp: timestamp.timestamp_millis(),
                                         temperature: mes.temperature,
                                         pressure: mes.pressure,
                                         humidity: mes.humidity,
@@ -68,7 +73,7 @@ async fn main() -> Result<()> {
                                     .unwrap();
                                 }
                             }
-                            packet::Payload::DeviceInfo(info) => {
+                            Payload::DeviceInfo(info) => {
                                 if let Ok(mut db) = db.lock() {
                                     db.update_device_info(&db::models::DeviceInfo {
                                         device_id: device_id as i32,
@@ -86,7 +91,7 @@ async fn main() -> Result<()> {
                                         uptime: info.uptime as i32,
                                         report_interval: info.report_interval as i32,
                                         sample_interval: info.sample_interval as i32,
-                                        last_seen: (ms_since_epoch()/1000) as i64,
+                                        last_seen: utils::utc_with_offset(0).timestamp_millis(),
                                     })
                                     .unwrap();
                                 }

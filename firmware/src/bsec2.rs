@@ -145,7 +145,8 @@ pub fn sensor_control(ts: Duration, sensor: &mut bme680::Device) -> Result<(Outp
         sensor.trigger_measurement()?;
     }
 
-    let mes_sleep = std::time::Duration::from_millis(150 + sensor_settings.heater_duration as u64);
+    let mes_sleep =
+        std::time::Duration::from_millis((150 + sensor_settings.heater_duration as u64).min(450));
     std::thread::sleep(mes_sleep);
 
     if sensor.is_busy()? {

@@ -32,6 +32,8 @@ num_enum = "0.5.11"
 protocol = "3.4.0"
 dotenvy = "0.15.6"
 
+common = { path = "../common" }
+
 [build-dependencies]
 embuild = "0.31.0"
 anyhow = "1.0.69"

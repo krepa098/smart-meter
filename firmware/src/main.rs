@@ -3,7 +3,6 @@ mod bme680;
 mod bsec2;
 mod mqtt;
 mod multicast;
-mod packet;
 mod rgb_led;
 mod utils;
 mod web;
@@ -18,11 +17,10 @@ use log::info;
 use std::env;
 use std::time::Duration;
 
-use crate::packet::Measurement;
 use crate::rgb_led::Color;
 use crate::utils::LightSleep;
 use crate::wifi::{Credentials, WiFi};
-use packet::{DeviceInfo, Header, Packet, Payload};
+use common::packet::{DeviceInfo, Header, Measurement, Packet, Payload};
 
 const ENV_STR: &str = include_str!("../.env");
 
@@ -235,9 +233,8 @@ fn main() -> anyhow::Result<()> {
             println!("current: {:?}, next {:?}", utils::system_time(), next_call);
 
             mc_client.enqueue(Packet {
-                header: Header::with_device_id(device_id),
+                header: Header::new(device_id, utils::system_time().as_millis() as u64),
                 payload: Payload::Measurement(Measurement {
-                    timestamp: utils::system_time().as_millis() as u64,
                     temperature: outputs.heat_compensated_temperature.map(|f| f.signal),
                     pressure: outputs.raw_pressure.map(|f| f.signal),
                     humidity: outputs.heat_compensated_humidity.map(|f| f.signal),
@@ -253,7 +250,7 @@ fn main() -> anyhow::Result<()> {
                 report_interval = 0;
 
                 mc_client.enqueue(Packet {
-                    header: Header::with_device_id(device_id),
+                    header: Header::new(device_id, utils::system_time().as_millis() as u64),
                     payload: Payload::DeviceInfo(DeviceInfo {
                         uptime: (utils::system_time() - startup_time).as_secs(),
                         firmware_version: fw_version,

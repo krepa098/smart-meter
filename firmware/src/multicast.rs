@@ -2,7 +2,7 @@ use anyhow::Result;
 use protocol::wire::{dgram::Pipeline, middleware};
 use std::{net::UdpSocket, sync::Mutex};
 
-use crate::packet::Packet;
+use common::packet::Packet;
 
 pub struct Client {
     socket: UdpSocket, // 508 bytes (single fragment)
@@ -53,12 +53,21 @@ impl Client {
     }
 
     pub fn broadcast_queue(&mut self) -> Result<()> {
+        self.timestamp_to_rel();
+
         for pkt in &self.queue {
             self.broadcast_pkt(pkt)?;
         }
         self.queue.clear();
 
         Ok(())
+    }
+
+    fn timestamp_to_rel(&mut self) {
+        let last_timestamp = self.queue.last().map_or(0, |pkg| pkg.header.timestamp);
+        for pkt in &mut self.queue {
+            pkt.header.timestamp = pkt.header.timestamp.saturating_sub(last_timestamp);
+        }
     }
 
     pub fn enqueue(&mut self, pkt: Packet) -> Result<()> {

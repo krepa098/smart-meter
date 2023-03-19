@@ -6,14 +6,18 @@ const MAGIC: &str = "BRST";
 pub struct Header {
     magic: String,
     pub device_id: u32,
+    pub timestamp: u64,     // ms since boot
+    pub rel_timestamp: i64, // ms since packet was sent
 }
 
 #[allow(unused)]
 impl Header {
-    pub fn with_device_id(device_id: u32) -> Self {
+    pub fn new(device_id: u32, timestamp: u64) -> Self {
         Self {
             magic: MAGIC.to_string(),
             device_id,
+            timestamp,
+            rel_timestamp: 0,
         }
     }
 }
@@ -33,7 +37,6 @@ pub enum Payload {
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, Protocol)]
 #[allow(unused)]
 pub struct Measurement {
-    pub timestamp: u64,
     pub temperature: Option<f32>,  // °C
     pub pressure: Option<f32>,     // Pa
     pub humidity: Option<f32>,     // percent
