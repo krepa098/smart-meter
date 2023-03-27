@@ -1,13 +1,11 @@
 use anyhow::Result;
-use protocol::wire::{dgram::Pipeline, middleware};
-use std::{net::UdpSocket, sync::Mutex};
+use std::net::UdpSocket;
 
 use common::packet::Packet;
 
 pub struct Client {
     socket: UdpSocket, // 508 bytes (single fragment)
     command_socket: UdpSocket,
-    pipeline: Mutex<Pipeline<Packet, middleware::pipeline::Default>>,
     queue: heapless::Vec<Packet, 40>,
 }
 
@@ -21,33 +19,16 @@ impl Client {
 
         let command_socket = UdpSocket::bind("192.168.178.255:6464")?;
 
-        let middleware = middleware::pipeline::default();
-        let pipeline = Pipeline::new(
-            middleware,
-            protocol::Settings {
-                byte_order: protocol::ByteOrder::LittleEndian,
-            },
-        );
-
         Ok(Self {
             socket,
             command_socket,
-            pipeline: std::sync::Mutex::new(pipeline),
             queue: heapless::Vec::new(),
         })
     }
 
     pub fn broadcast_pkt(&self, payload: &Packet) -> Result<()> {
-        let buffer = [0u8; 256];
-        let mut cursor = std::io::Cursor::new(buffer);
-        self.pipeline
-            .lock()
-            .unwrap()
-            .send_to(&mut cursor, payload)
-            .unwrap();
-
-        let len = cursor.position() as usize;
-        self.socket.send(&cursor.into_inner()[0..len])?;
+        let buffer: heapless::Vec<u8, 256> = postcard::to_vec(payload)?;
+        self.socket.send(&buffer)?;
 
         Ok(())
     }

@@ -4,7 +4,6 @@ use actix_web::rt::net::UdpSocket;
 use anyhow::Result;
 use common::packet::{Packet, Payload};
 use dotenvy::dotenv;
-use protocol::wire::{dgram::Pipeline, middleware};
 use tokio::signal;
 
 mod api;
@@ -13,26 +12,11 @@ mod db;
 mod schema;
 mod utils;
 
-fn ms_since_epoch() -> u128 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_millis()
-}
-
 #[actix_web::main]
 async fn main() -> Result<()> {
     std::env::set_var("RUST_LOG", "debug");
     env_logger::init();
     dotenv().ok();
-
-    let middleware = middleware::pipeline::default();
-    let mut pipeline: Pipeline<Packet, middleware::pipeline::Default> = Pipeline::new(
-        middleware,
-        protocol::Settings {
-            byte_order: protocol::ByteOrder::LittleEndian,
-        },
-    );
 
     let sock = UdpSocket::bind("0.0.0.0:8989").await?;
 
@@ -45,9 +29,8 @@ async fn main() -> Result<()> {
         loop {
             tokio::select! {
                 Ok((len, _addr)) = sock.recv_from(&mut buf) => {
-                    let mut data = std::io::Cursor::new(&buf[0..len]);
                     // try deserialize
-                    let packet = pipeline.receive_from(&mut data);
+                    let packet: postcard::Result<Packet> = postcard::from_bytes(&buf[0..len]);
 
                     if let Ok(packet) = packet {
                         let device_id = packet.header.device_id;

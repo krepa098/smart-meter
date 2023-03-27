@@ -1,6 +1,6 @@
 [package]
 name = "firmware-m1s1"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Paul <krepa098@gmail.com>"]
 edition = "2021"
 resolver = "2"
@@ -29,7 +29,7 @@ log = "0.4.17"
 bitbybit = "1.1.2"
 arbitrary-int = "1.2.3"
 num_enum = "0.5.11"
-protocol = "3.4.0"
+postcard = "1.0.4"
 dotenvy = "0.15.6"
 
 common = { path = "../common" }
