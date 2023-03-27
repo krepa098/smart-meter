@@ -46,9 +46,8 @@ impl BatMonitor {
 
         // 4xAA battery: 1.5V=100%, 1.2V=0%
         let bat_count = 4.0;
-        let bat_nom_voltage = 1.22; // rechargeable
         let v_min = 1.1 * bat_count;
-        let v_max = bat_nom_voltage * bat_count;
+        let v_max = 1.35 * bat_count;
         let v_range = v_max - v_min;
 
         let cap = ((voltage - v_min) / v_range).clamp(0.0, 1.0);
