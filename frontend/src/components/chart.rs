@@ -92,7 +92,7 @@ impl Component for Model {
                 ty: MeasurementType::BatVoltage,
                 scale: 1.0,
                 overlay: Overlay::None,
-                y_range: Some((0.0, 6.0)),
+                y_range: Some((4.0, 6.0)),
             },
         ];
 
