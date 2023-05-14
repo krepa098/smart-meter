@@ -115,6 +115,16 @@ impl Db {
         limit: u32,
     ) -> Result<req::MeasurementRequestResponse> {
         use crate::schema::measurements::dsl::*;
+
+        let total_entries: i64 = measurements
+            .filter(device_id.eq(dev_id as i32))
+            .filter(timestamp.ge(from_date.unwrap_or(0) as i64))
+            .filter(timestamp.le(to_date.unwrap_or(utils::ms_since_epoch() as u64) as i64))
+            .count()
+            .get_result(&mut self.conn)?;
+
+        let div = (total_entries as f32 / limit as f32).ceil() as usize;
+
         let res = measurements
             .filter(device_id.eq(dev_id as i32))
             .filter(timestamp.ge(from_date.unwrap_or(0) as i64))
@@ -122,6 +132,9 @@ impl Db {
             .order(id.desc())
             .limit(limit as i64)
             .load::<models::DeviceMeasurement>(&mut self.conn)?;
+
+        // TODO: integrate this into the query somehow
+        let res: Vec<_> = res.iter().step_by(div).collect();
 
         // filter requested measurements
         let mut data = std::collections::HashMap::new();
