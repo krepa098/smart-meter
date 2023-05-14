@@ -118,10 +118,11 @@ impl Component for Model {
         let cb = ctx.props().on_device_id_changed.clone();
         let device_cb = Callback::from(move |e: Event| {
             let target: Option<web_sys::EventTarget> = e.target();
-            let input = target.and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok());
-            let value = input.unwrap().value_as_number() as u32;
-            info!("{}", value);
-            cb.emit(value);
+            let input = target
+                .and_then(|t| t.dyn_into::<web_sys::HtmlSelectElement>().ok())
+                .unwrap();
+            let device_id = input.value().parse().unwrap();
+            cb.emit(device_id);
         });
 
         let ts_from = ctx.props().from_date.format("%Y-%m-%d").to_string();
@@ -134,7 +135,7 @@ impl Component for Model {
                 let device_id = *k;
                 let device_name = self.device_names[&device_id].clone();
                 html! {
-                    <option>{device_name}</option>
+                    <option value={format!("{}", device_id)}>{device_name}</option>
                 }
             })
             .collect();
