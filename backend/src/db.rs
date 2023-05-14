@@ -130,7 +130,6 @@ impl Db {
             .filter(timestamp.ge(from_date.unwrap_or(0) as i64))
             .filter(timestamp.le(to_date.unwrap_or(utils::ms_since_epoch() as u64) as i64))
             .order(id.desc())
-            .limit(limit as i64)
             .load::<models::DeviceMeasurement>(&mut self.conn)?;
 
         // TODO: integrate this into the query somehow
