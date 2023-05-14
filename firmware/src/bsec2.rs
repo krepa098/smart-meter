@@ -145,61 +145,70 @@ pub fn sensor_control(ts: Duration, sensor: &mut bme680::Device) -> Result<(Outp
         sensor.trigger_measurement()?;
     }
 
-    let mes_sleep =
-        std::time::Duration::from_millis((150 + sensor_settings.heater_duration as u64).min(450));
+    let mes_sleep = std::time::Duration::from_millis(sensor_settings.heater_duration as u64);
+    log::info!("bsec: sleeping for {} ms...", mes_sleep.as_millis());
     std::thread::sleep(mes_sleep);
 
-    if sensor.is_busy()? {
-        bail!("not enough time");
+    for _ in 0..3 {
+        if sensor.is_busy()? {
+            log::warn!(
+                "not enough time, slept for {} ms (heat duration {}). Try again...",
+                mes_sleep.as_millis(),
+                sensor_settings.heater_duration
+            );
+            std::thread::sleep(mes_sleep);
+        } else {
+            let mes = sensor.read_measurements()?;
+
+            // feed data to do_steps
+            let mut bsec_inputs = heapless::Vec::<Input, 4>::new();
+            if (sensor_settings.process_data & sys::PROCESS_GAS) > 0 {
+                bsec_inputs
+                    .push(Input::new(
+                        ts_ns,
+                        Sensor::Phyical(PhysicalSensor::Gasresistor),
+                        mes.gas_res.unwrap(),
+                    ))
+                    .unwrap();
+            }
+            if (sensor_settings.process_data & sys::PROCESS_HUMIDITY) > 0 {
+                bsec_inputs
+                    .push(Input::new(
+                        ts_ns,
+                        Sensor::Phyical(PhysicalSensor::Humidity),
+                        mes.humidity.unwrap(),
+                    ))
+                    .unwrap();
+            }
+            if (sensor_settings.process_data & sys::PROCESS_PRESSURE) > 0 {
+                bsec_inputs
+                    .push(Input::new(
+                        ts_ns,
+                        Sensor::Phyical(PhysicalSensor::Pressure),
+                        mes.pressure.unwrap(),
+                    ))
+                    .unwrap();
+            }
+            if (sensor_settings.process_data & sys::PROCESS_TEMPERATURE) > 0 {
+                bsec_inputs
+                    .push(Input::new(
+                        ts_ns,
+                        Sensor::Phyical(PhysicalSensor::Temperature),
+                        mes.temperature.unwrap(),
+                    ))
+                    .unwrap();
+            }
+
+            let outputs = do_steps(&bsec_inputs)?;
+
+            return Ok((
+                outputs,
+                Duration::from_nanos(sensor_settings.next_call as u64),
+            ));
+        }
     }
 
-    let mes = sensor.read_measurements()?;
-
-    // feed data to do_steps
-    let mut bsec_inputs = heapless::Vec::<Input, 4>::new();
-    if (sensor_settings.process_data & sys::PROCESS_GAS) > 0 {
-        bsec_inputs
-            .push(Input::new(
-                ts_ns,
-                Sensor::Phyical(PhysicalSensor::Gasresistor),
-                mes.gas_res.unwrap(),
-            ))
-            .unwrap();
-    }
-    if (sensor_settings.process_data & sys::PROCESS_HUMIDITY) > 0 {
-        bsec_inputs
-            .push(Input::new(
-                ts_ns,
-                Sensor::Phyical(PhysicalSensor::Humidity),
-                mes.humidity.unwrap(),
-            ))
-            .unwrap();
-    }
-    if (sensor_settings.process_data & sys::PROCESS_PRESSURE) > 0 {
-        bsec_inputs
-            .push(Input::new(
-                ts_ns,
-                Sensor::Phyical(PhysicalSensor::Pressure),
-                mes.pressure.unwrap(),
-            ))
-            .unwrap();
-    }
-    if (sensor_settings.process_data & sys::PROCESS_TEMPERATURE) > 0 {
-        bsec_inputs
-            .push(Input::new(
-                ts_ns,
-                Sensor::Phyical(PhysicalSensor::Temperature),
-                mes.temperature.unwrap(),
-            ))
-            .unwrap();
-    }
-
-    let outputs = do_steps(&bsec_inputs)?;
-
-    Ok((
-        outputs,
-        Duration::from_nanos(sensor_settings.next_call as u64),
-    ))
+    bail!("sensor busy")
 }
 
 pub fn version() -> Result<[u8; 4]> {
@@ -297,6 +306,15 @@ impl SampleRate {
             SampleRate::Ulp => sys::BSEC_SAMPLE_RATE_ULP as f32,
             SampleRate::Cont => sys::BSEC_SAMPLE_RATE_CONT as f32,
             SampleRate::Lp => sys::BSEC_SAMPLE_RATE_LP as f32,
+        }
+    }
+
+    pub fn sample_time_interval(&self) -> Option<Duration> {
+        match self {
+            SampleRate::Disabled => None,
+            SampleRate::Ulp => Some(Duration::from_secs(300)), // 0.09 mA
+            SampleRate::Cont => None,
+            SampleRate::Lp => Some(Duration::from_secs(3)), // 0.9 mA
         }
     }
 }
