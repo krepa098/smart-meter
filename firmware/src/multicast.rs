@@ -52,8 +52,9 @@ impl Client {
     }
 
     pub fn enqueue(&mut self, pkt: Packet) -> Result<()> {
-        if let Err(_) = self.queue.push(pkt) {
+        if let Err(err) = self.queue.push(pkt) {
             self.queue.clear();
+            log::warn!("Broadcast queue cleared. Reason: {:?}", err);
             // TODO: error
         };
         Ok(())
