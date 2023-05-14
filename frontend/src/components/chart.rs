@@ -8,6 +8,15 @@ pub enum Msg {
     MeasurementsReceived(MeasurementRequestResponse),
 }
 
+struct SeriesProps {
+    id: String,
+    unit: String,
+    ty: MeasurementType,
+    scale: f32,
+    overlay: Overlay,
+    y_range: Option<(f32, f32)>,
+}
+
 pub struct Model {
     measurements: Option<MeasurementRequestResponse>,
     req_ts: Option<DateTime<Utc>>,
@@ -26,14 +35,14 @@ impl Component for Model {
 
     type Properties = ModelProps;
 
-    fn create(ctx: &Context<Self>) -> Self {
+    fn create(_ctx: &Context<Self>) -> Self {
         Self {
             measurements: None,
             req_ts: None,
         }
     }
 
-    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::MeasurementsReceived(dp) => {
                 self.measurements = Some(dp);
@@ -44,47 +53,47 @@ impl Component for Model {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let chart_types = [
-            (
-                "Temperature",
-                "°C",
-                MeasurementType::Temperature,
-                1.0,
-                Overlay::None,
-                None,
-            ),
-            (
-                "Humidity",
-                "%",
-                MeasurementType::Humidity,
-                1.0,
-                Overlay::None,
-                None,
-            ),
-            (
-                "Pressure",
-                "hPa",
-                MeasurementType::Pressure,
-                1.0 / 100.0,
-                Overlay::None,
-                None,
-            ),
-            (
-                "Air Quality",
-                "IAQ",
-                MeasurementType::AirQuality,
-                1.0,
-                Overlay::IAQ,
-                None,
-            ),
-            (
-                "Battery Voltage",
-                "V",
-                MeasurementType::BatVoltage,
-                1.0,
-                Overlay::None,
-                Some((0.0, 6.0)),
-            ),
+        let series_props = [
+            SeriesProps {
+                id: "Temperature".to_owned(),
+                unit: "°C".to_owned(),
+                ty: MeasurementType::Temperature,
+                scale: 1.0,
+                overlay: Overlay::None,
+                y_range: None,
+            },
+            SeriesProps {
+                id: "Humidity".to_owned(),
+                unit: "%".to_owned(),
+                ty: MeasurementType::Humidity,
+                scale: 1.0,
+                overlay: Overlay::None,
+                y_range: None,
+            },
+            SeriesProps {
+                id: "Pressure".to_owned(),
+                unit: "hPa".to_owned(),
+                ty: MeasurementType::Pressure,
+                scale: 1.0 / 100.0,
+                overlay: Overlay::None,
+                y_range: None,
+            },
+            SeriesProps {
+                id: "Air Quality".to_owned(),
+                unit: "IAQ".to_owned(),
+                ty: MeasurementType::AirQuality,
+                scale: 1.0,
+                overlay: Overlay::IAQ,
+                y_range: None,
+            },
+            SeriesProps {
+                id: "Battery Voltage".to_owned(),
+                unit: "V".to_owned(),
+                ty: MeasurementType::BatVoltage,
+                scale: 1.0,
+                overlay: Overlay::None,
+                y_range: Some((0.0, 6.0)),
+            },
         ];
 
         let from_ts: DateTime<Utc> = DateTime::from(
@@ -104,31 +113,31 @@ impl Component for Model {
         );
 
         let mask = ctx.props().measurement_mask;
-        let charts_html: Vec<_> = chart_types
+        let charts_html: Vec<_> = series_props
             .iter()
-            .map(|(id, unit, ty, scale, overlay, y_range)| {
-                if mask.is_set(*ty) {
+            .map(|prop| {
+                if mask.is_set(prop.ty) {
                     html! {
                         <div class="panel panel-default">
                             <div class="panel-heading">
-                                <h3 class="panel-title">{format!("{} in {}", id, unit)}</h3>
+                                <h3 class="panel-title">{format!("{} in {}", prop.id, prop.unit)}</h3>
                             </div>
                             <div class="panel-body">
                                 <div class="row">
                                     if let Some(measurements) = self.measurements.as_ref() {
                                         <div class="col-md-12">
                                             <crate::components::chart_plotly::ChartPlotly
-                                                id={id.to_string()}
-                                                unit={unit.to_string()}
+                                                id={prop.id.to_string()}
+                                                unit={prop.unit.to_string()}
                                                 {from_ts}
                                                 {to_ts}
                                                 req_ts={self.req_ts}
-                                                overlay={*overlay}
-                                                y_range={y_range}
+                                                overlay={prop.overlay}
+                                                y_range={prop.y_range}
                                                 datapoints={measurements.timestamps
                                                     .iter()
-                                                    .zip(&measurements.data[&(*ty as u32)])
-                                                    .map(|(a, b)| (*a, *b * *scale))
+                                                    .zip(&measurements.data[&(prop.ty as u32)])
+                                                    .map(|(a, b)| (*a, *b * prop.scale))
                                                     .collect::<Vec<_>>()}
                                             />
                                         </div>
