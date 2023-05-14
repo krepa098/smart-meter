@@ -10,14 +10,13 @@ mod wifi;
 use esp_idf_hal::ledc::{config::TimerConfig, LedcDriver, LedcTimerDriver};
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
-use esp_idf_sys;
 use log::info;
 use std::env;
 use std::time::Duration;
 
 use crate::rgb_led::Color;
 use crate::utils::LightSleep;
-use crate::wifi::{Credentials, WiFi};
+use crate::wifi::{Credential, WiFi};
 use common::packet::{DeviceInfo, Header, Measurement, Packet, Payload};
 
 // --------------------------------------------------------------------
@@ -181,15 +180,23 @@ fn main() -> anyhow::Result<()> {
     dotenvy::from_read(ENV_STR.as_bytes()).ok();
     let wifi_ssid = env::var("WIFI_SSID")?;
     let wifi_pw = env::var("WIFI_PW")?;
-    let credentials = Credentials {
-        ssid: wifi_ssid.as_str().into(),
-        pw: wifi_pw.as_str().into(),
-    };
+    // parse credentials
+    let wifi_ssids = wifi_ssid.split_terminator(';');
+    let wifi_pws = wifi_pw.split_terminator(';');
+
+    let credentials: Vec<_> = wifi_ssids
+        .zip(wifi_pws)
+        .map(|(ssid, pw)| Credential {
+            ssid: ssid.into(),
+            pw: pw.into(),
+        })
+        .collect();
+
     let sys_loop = EspSystemEventLoop::take()?;
-    let mut wifi = WiFi::new(peripherals.modem, sys_loop)?;
+    let mut wifi = WiFi::new(peripherals.modem, sys_loop, credentials)?;
     if ENABLE_WIFI {
-        // wifi.scan()?;
-        wifi.start(&credentials)?;
+        wifi.scan()?;
+        wifi.start()?;
         wifi.connect_blocking()?;
         led.set_color(&Color::Green);
         std::thread::sleep(Duration::from_millis(500));
@@ -268,7 +275,7 @@ fn main() -> anyhow::Result<()> {
                 }
 
                 if ENABLE_WIFI {
-                    wifi.start(&credentials)?;
+                    wifi.start()?;
                     wifi.connect()?;
                 }
             }
