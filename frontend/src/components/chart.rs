@@ -51,6 +51,7 @@ impl Component for Model {
                 MeasurementType::Temperature,
                 1.0,
                 Overlay::None,
+                None,
             ),
             (
                 "Humidity",
@@ -58,6 +59,7 @@ impl Component for Model {
                 MeasurementType::Humidity,
                 1.0,
                 Overlay::None,
+                None,
             ),
             (
                 "Pressure",
@@ -65,6 +67,7 @@ impl Component for Model {
                 MeasurementType::Pressure,
                 1.0 / 100.0,
                 Overlay::None,
+                None,
             ),
             (
                 "Air Quality",
@@ -72,6 +75,7 @@ impl Component for Model {
                 MeasurementType::AirQuality,
                 1.0,
                 Overlay::IAQ,
+                None,
             ),
             (
                 "Battery Voltage",
@@ -79,6 +83,7 @@ impl Component for Model {
                 MeasurementType::BatVoltage,
                 1.0,
                 Overlay::None,
+                Some((0.0, 6.0)),
             ),
         ];
 
@@ -101,7 +106,7 @@ impl Component for Model {
         let mask = ctx.props().measurement_mask;
         let charts_html: Vec<_> = chart_types
             .iter()
-            .map(|(id, unit, ty, scale, overlay)| {
+            .map(|(id, unit, ty, scale, overlay, y_range)| {
                 if mask.is_set(*ty) {
                     html! {
                         <div class="panel panel-default">
@@ -119,6 +124,7 @@ impl Component for Model {
                                                 {to_ts}
                                                 req_ts={self.req_ts}
                                                 overlay={*overlay}
+                                                y_range={y_range}
                                                 datapoints={measurements.timestamps
                                                     .iter()
                                                     .zip(&measurements.data[&(*ty as u32)])

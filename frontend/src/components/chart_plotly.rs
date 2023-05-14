@@ -24,6 +24,7 @@ pub struct Props {
     pub to_ts: DateTime<Utc>,
     pub req_ts: Option<DateTime<Utc>>,
     pub overlay: Overlay,
+    pub y_range: Option<(f32, f32)>,
 }
 
 #[function_component(ChartPlotly)]
@@ -61,6 +62,10 @@ pub fn chart_plotly(props: &Props) -> Html {
                 .auto_size(true)
                 .margin(Margin::default().top(20).bottom(40).left(40).right(20))
                 .x_axis(Axis::new().range(vec![from_ts_str, to_ts_str]));
+
+            if let Some(range) = props.y_range {
+                layout = layout.y_axis(Axis::new().range(vec![range.0, range.1]));
+            }
 
             match props.overlay {
                 Overlay::IAQ => {
