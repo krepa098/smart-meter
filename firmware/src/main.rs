@@ -1,7 +1,6 @@
 mod bat;
 mod bme680;
 mod bsec2;
-mod mqtt;
 mod multicast;
 mod rgb_led;
 mod utils;
@@ -21,15 +20,14 @@ use crate::utils::LightSleep;
 use crate::wifi::{Credentials, WiFi};
 use common::packet::{DeviceInfo, Header, Measurement, Packet, Payload};
 
+// --------------------------------------------------------------------
+// config
+// --------------------------------------------------------------------
 const ENV_STR: &str = include_str!("../.env");
 
-// const MES_INTERVAL: Duration = Duration::from_secs(30);
-// const MES_INTERVAL: Duration = Duration::from_secs(3); // lp mode
+const MES_SAMPLE_RATE: bsec2::SampleRate = bsec2::SampleRate::Ulp; // 5min (ulp), 3s (lp)
+const MES_REPORT_INTERVAL_DIV: u32 = 3;
 
-const MES_INTERVAL: Duration = Duration::from_secs(5 * 60); // 5min (ulp)
-const MES_REPORT_INTERVAL_DIV: u32 = 3; // 15min
-
-// const MES_REPORT_INTERVAL_DIV: u32 = 15; // 1min
 const ENABLE_WIFI: bool = true;
 const ENABLE_LIGHT_SLEEP: bool = true;
 
@@ -53,7 +51,7 @@ const DEVICE_MODEL: &str = "M1S1";
 // debug
 //  cargo build && espflash /dev/ttyACM0 target/riscv32imc-esp-espidf/debug/firmware-m1s1 --monitor --speed 921600
 // release
-//  cargo build --release && espflash /dev/ttyACM0 target/riscv32imc-esp-espidf/debug/firmware-m1s1 --monitor --speed 921600
+//  cargo build --release && espflash /dev/ttyACM0 target/riscv32imc-esp-espidf/release/firmware-m1s1 --monitor --speed 921600
 //
 // --------------------------------------------------------------------
 
@@ -83,6 +81,7 @@ fn main() -> anyhow::Result<()> {
 
     bsec2::init()?;
     let bsec_version = bsec2::version()?;
+    let mes_interval = MES_SAMPLE_RATE.sample_time_interval().unwrap();
     info!(
         "bsec2 v{}.{}.{}.{}",
         bsec_version[0], bsec_version[1], bsec_version[2], bsec_version[3]
@@ -90,37 +89,39 @@ fn main() -> anyhow::Result<()> {
     {
         use bsec2::*;
 
+        let sample_rate = MES_SAMPLE_RATE;
+
         let _sensor_inputs = bsec2::update_subscription(&[
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Ulp,
+                sample_rate,
                 sensor: VirtualSensor::HeatCompensatedTemperature,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Ulp,
+                sample_rate,
                 sensor: VirtualSensor::HeatCompensatedHumidity,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Ulp,
+                sample_rate,
                 sensor: VirtualSensor::Voc,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Ulp,
+                sample_rate,
                 sensor: VirtualSensor::StaticIAQ,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Ulp,
+                sample_rate,
                 sensor: VirtualSensor::RawGas,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Ulp,
+                sample_rate,
                 sensor: VirtualSensor::RawPressure,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Ulp,
+                sample_rate,
                 sensor: VirtualSensor::RawTemperature,
             },
             VirtualSensorConfiguration {
-                sample_rate: SampleRate::Ulp,
+                sample_rate,
                 sensor: VirtualSensor::StabilizationStatus,
             },
         ])?;
@@ -207,19 +208,23 @@ fn main() -> anyhow::Result<()> {
     let mut bat = bat::BatMonitor::new(peripherals.adc1, peripherals.pins.gpio1)?;
 
     let mut report_interval = 0;
-    let mut report_lock = None;
+    let mut _report_lock = None;
     let mut next_sample_instant = Duration::ZERO;
     let startup_time = utils::system_time();
 
     loop {
         // sample?
         if next_sample_instant.saturating_sub(utils::system_time()) == Duration::ZERO {
-            println!("sample: {:?}", utils::system_time());
+            log::info!("sample: {:?}", utils::system_time());
             let (outputs, next_call) = bsec2::sensor_control(utils::system_time(), &mut bme680)?;
             next_sample_instant = next_call;
             let (bat_cap, bat_v) = bat.capacity()?;
 
-            println!("current: {:?}, next {:?}", utils::system_time(), next_call);
+            log::info!(
+                "current ts: {:?} s, next ts {:?} s",
+                utils::system_time(),
+                next_call
+            );
 
             mc_client.enqueue(Packet {
                 header: Header::new(device_id, utils::system_time().as_millis() as u64),
@@ -246,8 +251,8 @@ fn main() -> anyhow::Result<()> {
                         bsec_version,
                         model,
                         wifi_ssid: wifi.ssid().as_ref().map(|ssid| to_array(ssid.as_bytes())),
-                        report_interval: MES_INTERVAL.as_secs() * MES_REPORT_INTERVAL_DIV as u64,
-                        sample_interval: MES_INTERVAL.as_secs(),
+                        report_interval: mes_interval.as_secs() * MES_REPORT_INTERVAL_DIV as u64,
+                        sample_interval: mes_interval.as_secs(),
                     }),
                 })?;
 
@@ -259,7 +264,7 @@ fn main() -> anyhow::Result<()> {
                         next_call
                     );
 
-                    report_lock = Some(lightsleep.lock());
+                    _report_lock = Some(lightsleep.lock());
                 }
 
                 if ENABLE_WIFI {
@@ -273,8 +278,8 @@ fn main() -> anyhow::Result<()> {
             }
         }
 
-        if wifi.is_connected() && report_lock.is_some() {
-            println!("broadcast!");
+        if wifi.is_connected() {
+            log::info!("Broadcast pkgs");
             mc_client
                 .broadcast_queue()
                 .expect("Cannot transfer packets");
@@ -284,7 +289,7 @@ fn main() -> anyhow::Result<()> {
             }
 
             // drop the sleep lock, triggers sleep
-            report_lock = None;
+            _report_lock = None;
         }
 
         std::thread::sleep(Duration::from_millis(10));

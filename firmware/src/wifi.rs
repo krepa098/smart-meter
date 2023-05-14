@@ -89,7 +89,7 @@ impl WiFi {
             retries -= 1;
             if EspNetifWait::new::<EspNetif>(self.wifi.sta_netif(), &self.sys_loop)?
                 .wait_with_timeout(Duration::from_secs(10), || {
-                    self.wifi.is_connected().unwrap()
+                    self.wifi.is_up().unwrap()
                         && self.wifi.sta_netif().get_ip_info().unwrap().ip
                             != Ipv4Addr::new(0, 0, 0, 0)
                 })
