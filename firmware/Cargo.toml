@@ -1,6 +1,6 @@
 [package]
 name = "firmware-m1s1"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Paul <krepa098@gmail.com>"]
 edition = "2021"
 resolver = "2"
@@ -16,10 +16,10 @@ opt-level = "s"
 #pio = ["esp-idf-sys/pio"]
 
 [dependencies]
-esp-idf-sys = { version = "0.32.1", features = ["binstart"] }
-esp-idf-hal = "0.40.1"
-esp-idf-svc = { version = "0.45.0", features = [] }
-embedded-svc = "0.24.0"
+esp-idf-sys = { version = "0.33.0", features = ["binstart"] }
+esp-idf-hal = "0.41.0"
+esp-idf-svc = { version = "0.46.0", features = [] }
+embedded-svc = "0.25.0"
 embedded-hal = "0.2.7"
 
 anyhow = "1.0.70"
@@ -35,5 +35,5 @@ dotenvy = "0.15.7"
 common = { path = "../common" }
 
 [build-dependencies]
-embuild = "0.31.1"
+embuild = "0.31.2"
 bindgen = "0.65.1"

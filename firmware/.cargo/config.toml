@@ -19,7 +19,7 @@ linker = "ldproxy"
 
 # Future - necessary for the experimental "native build" of esp-idf-sys with ESP32C3
 # See also https://github.com/ivmarkov/embuild/issues/16
-rustflags = ["-C", "default-linker-libraries"]
+rustflags = ["-C", "default-linker-libraries", "--cfg", "espidf_time64"]
 
 [unstable]
 
@@ -29,6 +29,7 @@ build-std = ["std", "panic_abort"]
 [env]
 # Note: these variables are not used when using pio builder
 # Enables the esp-idf-sys "native" build feature (`cargo build --features native`) to build against ESP-IDF stable (v4.4)
-ESP_IDF_VERSION = { value = "branch:release/v4.4" }
+# ESP_IDF_VERSION = { value = "branch:release/v4.4" }
+ESP_IDF_VERSION = "release/v5.0"
 # Enables the esp-idf-sys "native" build feature (`cargo build --features native`) to build against ESP-IDF master (mainline)
 #ESP_IDF_VERSION = { value = "master" }

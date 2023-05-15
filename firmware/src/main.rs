@@ -56,11 +56,9 @@ const DEVICE_MODEL: &str = "M1S1";
 
 #[allow(deprecated)]
 fn main() -> anyhow::Result<()> {
-    esp_idf_sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
 
-    let part = esp_idf_svc::nvs::EspDefaultNvsPartition::take()?;
-    let _nvs = esp_idf_svc::nvs::EspNvs::new(part, "default", true);
+    let nvs = esp_idf_svc::nvs::EspDefaultNvsPartition::take()?;
 
     let fw_version: [u8; 4] = [
         env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap_or(0),
@@ -193,11 +191,10 @@ fn main() -> anyhow::Result<()> {
         .collect();
 
     let sys_loop = EspSystemEventLoop::take()?;
-    let mut wifi = WiFi::new(peripherals.modem, sys_loop, credentials)?;
+    let mut wifi = WiFi::new(peripherals.modem, sys_loop, credentials, Some(nvs))?;
     if ENABLE_WIFI {
-        wifi.scan()?;
         wifi.start()?;
-        wifi.connect_blocking()?;
+        wifi.connect()?;
         led.set_color(&Color::Green);
         std::thread::sleep(Duration::from_millis(500));
     }
@@ -228,7 +225,7 @@ fn main() -> anyhow::Result<()> {
             let (bat_cap, bat_v) = bat.capacity()?;
 
             log::info!(
-                "current ts: {:?} s, next ts {:?} s",
+                "current ts: {:?}, next ts {:?}",
                 utils::system_time(),
                 next_call
             );
@@ -277,26 +274,22 @@ fn main() -> anyhow::Result<()> {
                 if ENABLE_WIFI {
                     wifi.start()?;
                     wifi.connect()?;
+
+                    log::info!("Broadcast pkgs");
+                    mc_client
+                        .broadcast_queue()
+                        .expect("Cannot transfer packets");
+
+                    wifi.stop().expect("Cannot stop wifi");
+
+                    // drop the sleep lock, triggers sleep
+                    _report_lock = None;
                 }
             }
 
             if ENABLE_LIGHT_SLEEP {
                 lightsleep.sleep_until(next_call);
             }
-        }
-
-        if wifi.is_connected() {
-            log::info!("Broadcast pkgs");
-            mc_client
-                .broadcast_queue()
-                .expect("Cannot transfer packets");
-
-            if ENABLE_WIFI {
-                wifi.stop().expect("Cannot stop wifi");
-            }
-
-            // drop the sleep lock, triggers sleep
-            _report_lock = None;
         }
 
         std::thread::sleep(Duration::from_millis(10));

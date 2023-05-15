@@ -1,13 +1,9 @@
-use anyhow::{bail, Result};
-use std::{net::Ipv4Addr, time::Duration};
+use anyhow::Result;
+use std::time::Duration;
 
-use embedded_svc::wifi::{ClientConfiguration, Configuration, Wifi};
+use embedded_svc::wifi::{ClientConfiguration, Configuration};
 use esp_idf_hal::peripheral;
-use esp_idf_svc::{
-    eventloop::EspSystemEventLoop,
-    netif::{EspNetif, EspNetifWait},
-    wifi::{EspWifi, WifiWait},
-};
+use esp_idf_svc::{eventloop::EspSystemEventLoop, wifi::BlockingWifi, wifi::EspWifi};
 use heapless::String;
 
 #[derive(Debug)]
@@ -18,8 +14,7 @@ pub struct Credential {
 
 pub struct WiFi {
     credentials: Vec<Credential>,
-    wifi: Box<EspWifi<'static>>,
-    sys_loop: EspSystemEventLoop,
+    wifi: Box<BlockingWifi<EspWifi<'static>>>,
     ssid: Option<String<32>>,
 
     // cached
@@ -33,11 +28,14 @@ impl WiFi {
         modem: impl peripheral::Peripheral<P = esp_idf_hal::modem::Modem> + 'static,
         sys_loop: EspSystemEventLoop,
         credentials: Vec<Credential>,
+        nvs: Option<esp_idf_svc::nvs::EspNvsPartition<esp_idf_svc::nvs::NvsDefault>>,
     ) -> Result<Self> {
         Ok(Self {
             credentials,
-            wifi: Box::new(EspWifi::new(modem, sys_loop.clone(), None)?),
-            sys_loop,
+            wifi: Box::new(BlockingWifi::wrap(
+                EspWifi::new(modem, sys_loop.clone(), nvs)?,
+                sys_loop,
+            )?),
             ssid: None,
             cached_bssid: None,
             cached_channel: None,
@@ -51,6 +49,10 @@ impl WiFi {
     }
 
     pub fn start(&mut self) -> Result<()> {
+        self.wifi
+            .set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
+        self.wifi.start()?;
+
         if self.cached_strongest_signal.is_none() {
             self.scan()?;
         }
@@ -68,21 +70,14 @@ impl WiFi {
             self.ssid = Some(credential.ssid.to_owned());
             self.wifi
                 .set_configuration(&Configuration::Client(client_config))?;
-
-            self.wifi.start()?;
-            if !WifiWait::new(&self.sys_loop)?
-                .wait_with_timeout(Duration::from_secs(20), || self.wifi.is_started().unwrap())
-            {
-                bail!("Wifi did not start");
-            }
         }
 
         Ok(())
     }
 
     pub fn scan(&mut self) -> Result<()> {
-        let info = self.wifi.scan()?;
         log::info!("WiFi networks:");
+        let info = self.wifi.scan()?;
         for (i, fo) in info.iter().enumerate() {
             log::info!("\t{}| '{}' ({} db)", i + 1, fo.ssid, fo.signal_strength);
 
@@ -103,27 +98,19 @@ impl WiFi {
         Ok(())
     }
 
-    pub fn connect_blocking(&mut self) -> Result<()> {
+    pub fn connect(&mut self) -> Result<()> {
         if !self.is_started() || self.is_connected() {
             return Ok(());
         }
 
-        let mut retries = 3;
-        while retries > 0 {
+        for _ in 0..3 {
             log::info!("Connecting...");
-            self.wifi.connect()?;
 
-            retries -= 1;
-            if EspNetifWait::new::<EspNetif>(self.wifi.sta_netif(), &self.sys_loop)?
-                .wait_with_timeout(Duration::from_secs(10), || {
-                    self.wifi.is_up().unwrap()
-                        && self.wifi.sta_netif().get_ip_info().unwrap().ip
-                            != Ipv4Addr::new(0, 0, 0, 0)
-                })
-            {
+            if self.wifi.connect().is_err() {
+                log::warn!("Wifi connection failed... try again");
+            } else {
+                self.wifi.wait_netif_up()?;
                 break;
-            } else if retries == 0 {
-                bail!("Wifi did not connect or did not receive a DHCP lease");
             }
 
             std::thread::sleep(Duration::from_secs(5));
@@ -132,6 +119,7 @@ impl WiFi {
         // cache for faster reconnect
         self.cached_bssid = self
             .wifi
+            .wifi()
             .driver()
             .get_configuration()
             .unwrap()
@@ -141,6 +129,7 @@ impl WiFi {
 
         self.cached_channel = self
             .wifi
+            .wifi()
             .driver()
             .get_configuration()
             .unwrap()
@@ -151,22 +140,8 @@ impl WiFi {
         Ok(())
     }
 
-    pub fn connect(&mut self) -> Result<()> {
-        if !self.is_started() || self.is_connected() {
-            return Ok(());
-        }
-
-        log::info!("Connecting...");
-        self.wifi.connect()?;
-
-        Ok(())
-    }
-
     pub fn is_connected(&self) -> bool {
-        if let Ok(ip_info) = self.wifi.sta_netif().get_ip_info() {
-            return ip_info.ip != Ipv4Addr::new(0, 0, 0, 0);
-        }
-        false
+        self.wifi.is_up().unwrap()
     }
 
     pub fn is_started(&self) -> bool {
