@@ -563,7 +563,7 @@ impl Device {
     }
 }
 
-fn calc_gas_wait_time(time: u16) -> u8 {
+pub fn calc_gas_wait_time(time: u16) -> u8 {
     // 6 bit (64ms) time steps, 1ms each
     // 2 bit multiplication factor (1, 4, 16, 64)
     let div_coeffs = [1, 4, 16, 64];
@@ -572,16 +572,15 @@ fn calc_gas_wait_time(time: u16) -> u8 {
     for (i, d) in div_coeffs.iter().enumerate() {
         if time / d <= 64 {
             div_reg = i as u8;
-            time_reg = (time / d) as u8;
+            time_reg = ((time / d) + 1) as u8;
             break;
         }
     }
 
-    let gas_wait = Gas_wait_x::new_with_raw_value(0)
+    Gas_wait_x::new_with_raw_value(0)
         .with_div(u2::new(div_reg))
         .with_timer(u6::new(time_reg))
-        .raw_value();
-    gas_wait
+        .raw_value()
 }
 
 fn calc_glas_res_heat(target_temp: f32, amb_temp: f32, cal: &Calibration) -> u8 {
