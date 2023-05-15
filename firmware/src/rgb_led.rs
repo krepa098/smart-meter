@@ -68,7 +68,7 @@ where
             Color::White => (0xFF, 0xFF, 0xFF),
             Color::Black => (0, 0, 0),
         };
-        self.set_rgb(rgb.0, rgb.1, rgb.2);
+        self.set_rgb(rgb.0 / 4, rgb.1 / 4, rgb.2 / 4);
     }
 
     pub fn set_rgb(&mut self, r: u8, g: u8, b: u8) {
