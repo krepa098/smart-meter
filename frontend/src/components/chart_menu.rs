@@ -134,8 +134,9 @@ impl Component for Model {
             .map(|k| {
                 let device_id = *k;
                 let device_name = self.device_names[&device_id].clone();
+                let selected_device = ctx.props().device_id.map_or(false, |d| d == device_id);
                 html! {
-                    <option value={format!("{}", device_id)}>{device_name}</option>
+                    <option value={format!("{}", device_id)} selected={selected_device}>{device_name}</option>
                 }
             })
             .collect();
