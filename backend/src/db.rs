@@ -123,7 +123,7 @@ impl Db {
             .count()
             .get_result(&mut self.conn)?;
 
-        let div = (total_entries as f32 / limit as f32).ceil() as usize;
+        let div = ((total_entries as f32 / limit as f32).ceil() as usize).max(1);
 
         let res = measurements
             .filter(device_id.eq(dev_id as i32))
