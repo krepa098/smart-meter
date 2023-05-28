@@ -47,7 +47,7 @@ impl Client {
     fn timestamp_to_rel(&mut self) {
         let last_timestamp = self.queue.last().map_or(0, |pkg| pkg.header.timestamp);
         for pkt in &mut self.queue {
-            pkt.header.timestamp = pkt.header.timestamp.saturating_sub(last_timestamp);
+            pkt.header.rel_timestamp = (pkt.header.timestamp as i64) - (last_timestamp as i64);
         }
     }
 

@@ -537,7 +537,7 @@ impl Device {
             let var1 = (1340.0 + 5.0 * range_sw_err) * CONST_ARRAY1[gas_range as usize];
 
             // in ohm
-            Some(var1 * CONST_ARRAY2[gas_range as usize] / (gas_adc as f32 - 512.0 + var1))
+            Some(var1 * CONST_ARRAY2[gas_range as usize] / (gas_adc - 512.0 + var1))
         } else {
             None
         };

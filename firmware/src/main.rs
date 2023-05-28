@@ -77,6 +77,7 @@ fn main() -> anyhow::Result<()> {
     let model: [u8; 16] = to_array(DEVICE_MODEL.as_bytes());
 
     bsec2::init()?;
+    bsec2::set_generic_config_3v3_300s_4d()?;
     let bsec_version = bsec2::version()?;
     let mes_interval = MES_SAMPLE_RATE.sample_time_interval().unwrap();
     info!(
@@ -97,10 +98,10 @@ fn main() -> anyhow::Result<()> {
                 sample_rate,
                 sensor: VirtualSensor::HeatCompensatedHumidity,
             },
-            VirtualSensorConfiguration {
-                sample_rate,
-                sensor: VirtualSensor::Voc,
-            },
+            // VirtualSensorConfiguration {
+            //     sample_rate,
+            //     sensor: VirtualSensor::Voc,
+            // },
             VirtualSensorConfiguration {
                 sample_rate,
                 sensor: VirtualSensor::StaticIAQ,
