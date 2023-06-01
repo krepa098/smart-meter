@@ -355,11 +355,6 @@ impl Device {
         Ok(())
     }
 
-    fn setup_gas(&mut self, profile: u8, target_temperature: f32, heating_duration: f32) {
-        // notice: about 20-30 ms are needed for the heater to reach target temperature
-        assert!(profile < 10);
-    }
-
     pub fn trigger_measurement(&mut self) -> Result<()> {
         let ctrl_meas = Ctrl_meas::new_with_raw_value(self.read_reg(register::CTRL_MEAS)?)
             .with_mode(u2::new(Mode::Forced as u8));
@@ -369,7 +364,7 @@ impl Device {
 
     pub fn reset(&mut self) -> Result<()> {
         self.interface
-            .write(DEVICE_ADDR, &[register::RESET as u8, 0xB6], TIMEOUT)?;
+            .write(DEVICE_ADDR, &[register::RESET, 0xB6], TIMEOUT)?;
         Ok(())
     }
 
@@ -384,7 +379,7 @@ impl Device {
     fn read_reg(&mut self, reg: u8) -> Result<u8> {
         let mut buffer = [0_u8; 1];
         self.interface
-            .write_read(DEVICE_ADDR, &[reg as u8], &mut buffer, TIMEOUT)?;
+            .write_read(DEVICE_ADDR, &[reg], &mut buffer, TIMEOUT)?;
 
         Ok(buffer[0])
     }
@@ -402,7 +397,7 @@ impl Device {
         // msb comes first
         let mut buffer = [0_u8; 2];
         self.interface
-            .write_read(DEVICE_ADDR, &[reg as u8], &mut buffer, TIMEOUT)?;
+            .write_read(DEVICE_ADDR, &[reg], &mut buffer, TIMEOUT)?;
 
         Ok((buffer[0] as u16) << 8 | buffer[1] as u16)
     }
@@ -412,7 +407,7 @@ impl Device {
         // lsb comes first
         let mut buffer = [0_u8; 2];
         self.interface
-            .write_read(DEVICE_ADDR, &[reg as u8], &mut buffer, TIMEOUT)?;
+            .write_read(DEVICE_ADDR, &[reg], &mut buffer, TIMEOUT)?;
 
         Ok((buffer[1] as u16) << 8 | buffer[0] as u16)
     }
@@ -439,8 +434,8 @@ impl Device {
     }
 
     fn read_gas_adc(&mut self) -> Result<u32> {
-        Ok(((self.read_reg(register::GAS_R_MSB)? as u32) << 2
-            | (self.read_reg(register::GAS_R_LSB)? as u32) >> 6))
+        Ok((self.read_reg(register::GAS_R_MSB)? as u32) << 2
+            | (self.read_reg(register::GAS_R_LSB)? as u32) >> 6)
     }
 
     pub fn read_measurements(&mut self) -> Result<Measurements> {
@@ -564,6 +559,8 @@ impl Device {
 }
 
 pub fn calc_gas_wait_time(time: u16) -> u8 {
+    let time = time.min(0xfc0);
+
     // 6 bit (64ms) time steps, 1ms each
     // 2 bit multiplication factor (1, 4, 16, 64)
     let div_coeffs = [1, 4, 16, 64];
@@ -584,6 +581,8 @@ pub fn calc_gas_wait_time(time: u16) -> u8 {
 }
 
 fn calc_glas_res_heat(target_temp: f32, amb_temp: f32, cal: &Calibration) -> u8 {
+    let target_temp = target_temp.min(400.0);
+
     let par_g1 = cal.par_g1 as f32;
     let par_g2 = cal.par_g2 as f32;
     let par_g3 = cal.par_g3 as f32;
@@ -595,10 +594,10 @@ fn calc_glas_res_heat(target_temp: f32, amb_temp: f32, cal: &Calibration) -> u8 
     let var3 = par_g3 / 1024.0;
     let var4 = var1 * (1.0 + (var2 * target_temp));
     let var5 = var4 + (var3 * amb_temp); // heater resistance in ohm
-    let res_heat = (3.4
-        * ((var5 * (4.0 / (4.0 + res_heat_range)) * (1.0 / (1.0 + (res_heat_val * 0.002)))) - 25.0))
-        as u8;
-    res_heat
+
+    // res_heat
+    (3.4 * ((var5 * (4.0 / (4.0 + res_heat_range)) * (1.0 / (1.0 + (res_heat_val * 0.002))))
+        - 25.0)) as u8
 }
 
 #[cfg(test)]
