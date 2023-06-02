@@ -137,7 +137,7 @@ impl Component for Model {
                                                 datapoints={measurements.timestamps
                                                     .iter()
                                                     .zip(&measurements.data[&(prop.ty as u32)])
-                                                    .map(|(a, b)| (*a, *b * prop.scale))
+                                                    .map(|(a, b)| (*a, b.map_or(std::f32::NAN, |v| v* prop.scale)))
                                                     .collect::<Vec<_>>()}
                                             />
                                         </div>
@@ -201,7 +201,8 @@ impl Model {
                     req::MeasurementMask::ALL,
                     10000,
                 )
-                .await;
+                .await
+                .unwrap();
 
                 link.send_message(Msg::MeasurementsReceived(resp));
             });

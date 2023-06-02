@@ -292,7 +292,7 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "backend"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "actix-cors",
  "actix-web",
@@ -429,7 +429,7 @@ checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
 
 [[package]]
 name = "common"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "protocol",
  "serde",

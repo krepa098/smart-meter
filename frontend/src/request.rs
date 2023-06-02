@@ -24,7 +24,7 @@ pub async fn measurements(
     ts_to: Option<DateTime<Utc>>,
     measurement_mask: MeasurementMask,
     limit: i64,
-) -> MeasurementRequestResponse {
+) -> Result<MeasurementRequestResponse> {
     let client = reqwest::Client::new();
 
     let mut query = vec![
@@ -39,17 +39,14 @@ pub async fn measurements(
         query.push(("to_date", date.timestamp_millis()))
     }
 
-    let resp = client
+    Ok(client
         .get(api_url("api/measurements/by_date"))
         .query(&query)
         .header(ACCEPT, "application/json")
         .send()
-        .await
-        .unwrap()
+        .await?
         .json::<MeasurementRequestResponse>()
-        .await
-        .unwrap();
-    resp
+        .await?)
 }
 
 pub async fn device_infos() -> Vec<DeviceInfo> {

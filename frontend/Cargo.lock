@@ -189,7 +189,7 @@ dependencies = [
 
 [[package]]
 name = "common"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "protocol",
  "serde",
@@ -406,7 +406,7 @@ dependencies = [
 
 [[package]]
 name = "frontend"
-version = "0.7.2"
+version = "0.7.3"
 dependencies = [
  "anyhow",
  "chrono",

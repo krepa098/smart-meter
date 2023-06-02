@@ -140,41 +140,37 @@ impl Db {
         if measurement_type & req::MeasurementType::Temperature as u32 > 0 {
             data.insert(
                 req::MeasurementType::Temperature as u32,
-                res.iter()
-                    .map(|p| p.temperature.unwrap_or(f32::NAN))
-                    .collect(),
+                res.iter().map(|p| p.temperature).collect(),
             );
         }
         if measurement_type & req::MeasurementType::Pressure as u32 > 0 {
             data.insert(
                 req::MeasurementType::Pressure as u32,
-                res.iter().map(|p| p.pressure.unwrap_or(f32::NAN)).collect(),
+                res.iter().map(|p| p.pressure).collect(),
             );
         }
         if measurement_type & req::MeasurementType::Humidity as u32 > 0 {
             data.insert(
                 req::MeasurementType::Humidity as u32,
-                res.iter().map(|p| p.humidity.unwrap_or(f32::NAN)).collect(),
+                res.iter().map(|p| p.humidity).collect(),
             );
         }
         if measurement_type & req::MeasurementType::BatCapacity as u32 > 0 {
             data.insert(
                 req::MeasurementType::BatCapacity as u32,
-                res.iter().map(|p| p.bat_cap.unwrap_or(f32::NAN)).collect(),
+                res.iter().map(|p| p.bat_cap).collect(),
             );
         }
         if measurement_type & req::MeasurementType::BatVoltage as u32 > 0 {
             data.insert(
                 req::MeasurementType::BatVoltage as u32,
-                res.iter().map(|p| p.bat_v.unwrap_or(f32::NAN)).collect(),
+                res.iter().map(|p| p.bat_v).collect(),
             );
         }
         if measurement_type & req::MeasurementType::AirQuality as u32 > 0 {
             data.insert(
                 req::MeasurementType::AirQuality as u32,
-                res.iter()
-                    .map(|p| p.air_quality.unwrap_or(f32::NAN))
-                    .collect(),
+                res.iter().map(|p| p.air_quality).collect(),
             );
         }
 

@@ -51,7 +51,7 @@ pub fn device_list() -> yew::Html {
                         MeasurementMask::ALL,
                         1,
                     )
-                    .await;
+                    .await.unwrap();
                     measurements.insert(id, resp);
 
                     let resp = request::measurement_info(dev.device_id as u32).await;
@@ -87,7 +87,7 @@ pub fn device_list() -> yew::Html {
                     NOT_AVAILABLE.to_string(),
                     |m| format!(
                         "{:.0}%",
-                        m.get(&device_id).unwrap().data[&(MeasurementType::BatCapacity as u32)][0]
+                        m.get(&device_id).unwrap().data[&(MeasurementType::BatCapacity as u32)][0].unwrap_or(std::f32::NAN)
                     )
                 );
                 let wifi = dev.wifi_ssid.as_ref().map_or(

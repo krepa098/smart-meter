@@ -65,5 +65,5 @@ impl Default for MeasurementMask {
 pub struct MeasurementRequestResponse {
     pub device_id: i32,
     pub timestamps: Vec<i64>,
-    pub data: HashMap<u32, Vec<f32>>,
+    pub data: HashMap<u32, Vec<Option<f32>>>,
 }
