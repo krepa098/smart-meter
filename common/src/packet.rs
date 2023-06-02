@@ -1,8 +1,6 @@
-use protocol::Protocol;
-
 const MAGIC: &str = "BRST";
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Protocol)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Header {
     magic: String,
     pub device_id: u32,
@@ -22,19 +20,19 @@ impl Header {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Protocol)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Packet {
     pub header: Header,
     pub payload: Payload,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Protocol)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Payload {
     Measurement(Measurement),
     DeviceInfo(DeviceInfo),
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, Protocol)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone)]
 #[allow(unused)]
 pub struct Measurement {
     pub temperature: Option<f32>,  // °C
@@ -45,7 +43,7 @@ pub struct Measurement {
     pub bat_capacity: Option<f32>, // percent
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, Protocol)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone)]
 #[allow(unused)]
 pub struct DeviceInfo {
     pub uptime: u64,                 // seconds
