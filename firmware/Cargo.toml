@@ -1,6 +1,6 @@
 [package]
 name = "firmware-m1s1"
-version = "0.4.3"
+version = "0.4.4"
 authors = ["Paul <krepa098@gmail.com>"]
 edition = "2021"
 resolver = "2"

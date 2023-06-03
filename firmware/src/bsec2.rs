@@ -179,9 +179,9 @@ pub fn sensor_control(ts: Duration, sensor: &mut bme680::Device) -> Result<(Outp
         } else {
             let mes = sensor.read_measurements()?;
 
-            // feed data to do_steps
+            // feed data to do_steps (i.e., to be processed by bsec)
             let mut bsec_inputs = heapless::Vec::<Input, 4>::new();
-            if (sensor_settings.process_data & sys::PROCESS_GAS) > 0 {
+            if (sensor_settings.process_data & sys::PROCESS_GAS) > 0 && mes.gas_res.is_some() {
                 bsec_inputs
                     .push(Input::new(
                         ts_ns,
@@ -190,7 +190,8 @@ pub fn sensor_control(ts: Duration, sensor: &mut bme680::Device) -> Result<(Outp
                     ))
                     .unwrap();
             }
-            if (sensor_settings.process_data & sys::PROCESS_HUMIDITY) > 0 {
+            if (sensor_settings.process_data & sys::PROCESS_HUMIDITY) > 0 && mes.humidity.is_some()
+            {
                 bsec_inputs
                     .push(Input::new(
                         ts_ns,
@@ -199,7 +200,8 @@ pub fn sensor_control(ts: Duration, sensor: &mut bme680::Device) -> Result<(Outp
                     ))
                     .unwrap();
             }
-            if (sensor_settings.process_data & sys::PROCESS_PRESSURE) > 0 {
+            if (sensor_settings.process_data & sys::PROCESS_PRESSURE) > 0 && mes.pressure.is_some()
+            {
                 bsec_inputs
                     .push(Input::new(
                         ts_ns,
@@ -208,7 +210,9 @@ pub fn sensor_control(ts: Duration, sensor: &mut bme680::Device) -> Result<(Outp
                     ))
                     .unwrap();
             }
-            if (sensor_settings.process_data & sys::PROCESS_TEMPERATURE) > 0 {
+            if (sensor_settings.process_data & sys::PROCESS_TEMPERATURE) > 0
+                && mes.temperature.is_some()
+            {
                 bsec_inputs
                     .push(Input::new(
                         ts_ns,
