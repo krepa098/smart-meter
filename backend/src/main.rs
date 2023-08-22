@@ -74,7 +74,7 @@ async fn main() -> Result<()> {
                                         uptime: info.uptime as i32,
                                         report_interval: info.report_interval as i32,
                                         sample_interval: info.sample_interval as i32,
-                                        last_seen: utils::utc_with_offset(0).timestamp_millis(),
+                                        last_seen: utils::utc_with_offset(0).timestamp(),
                                     })
                                     .unwrap();
                                 }
