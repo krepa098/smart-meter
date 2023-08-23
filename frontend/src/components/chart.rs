@@ -59,7 +59,7 @@ impl Component for Model {
                 unit: "°C".to_owned(),
                 ty: MeasurementType::Temperature,
                 scale: 1.0,
-                overlay: Overlay::None,
+                overlay: Overlay::Stats,
                 y_range: None,
             },
             SeriesProps {
@@ -142,7 +142,7 @@ impl Component for Model {
                                             />
                                         </div>
                                     }
-                                </div>
+                                </div> 
                             </div>
                         </div>
                     }

@@ -1,12 +1,12 @@
 [package]
 name = "frontend"
-version = "0.7.3"
+version = "0.8.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reqwest = { version = "0.11.17", features = ["blocking", "json", "serde_json"] }
+reqwest = { version = "0.11.19", features = ["blocking", "json", "serde_json"] }
 serde_json = "1.0"
 wasm-bindgen-futures = "0.4.35"
 yew = { version = "0.20", features = ["csr"] }
@@ -21,5 +21,5 @@ web-sys = { version = "0.3.62", features = ["HtmlSelectElement"] }
 serde = { version = "1.0.163", features = ["derive"] }
 log = "0.4.17"
 anyhow = "1"
-plotly = { version = "0.8.3", features = ["wasm"] }
+plotly = { version = "0.8.4", features = ["wasm"] }
 common = { path = "../common" }
