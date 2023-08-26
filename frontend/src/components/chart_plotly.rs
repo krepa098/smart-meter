@@ -99,7 +99,7 @@ pub fn chart_plotly(props: &Props) -> Html {
     html! {
         <>
             // show a message when we have no data for that interval
-            <h3 class={classes!(has_data.then_some(Some("hidden") ))}><span class="label label-default">{"Sorry, no data available for the selected time interval"}</span></h3>
+            <div class={classes!(has_data.then_some(Some("hidden") ))}><div class="alert alert-warning" role="alert">{"Sorry, no data available for the selected time interval. Please pick a valid interval."}</div></div>
             // otherwise show the graph
             // Note: we always have to keep the chart in the BOM to be able to feed it new data
             <div class={classes!("chart", has_no_data.then_some(Some("hidden")))} id={props.id.clone()}></div>
