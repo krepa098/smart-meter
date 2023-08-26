@@ -102,7 +102,7 @@ pub fn chart_plotly(props: &Props) -> Html {
             <h3 class={classes!(has_data.then_some(Some("hidden") ))}><span class="label label-default">{"Sorry, no data available for the selected time interval"}</span></h3>
             // otherwise show the graph
             // Note: we always have to keep the chart in the BOM to be able to feed it new data
-            <div class={classes!("chart", has_no_data.then(|| Some("hidden") ))} id={props.id.clone()}></div>
+            <div class={classes!("chart", has_no_data.then_some(Some("hidden")))} id={props.id.clone()}></div>
         </>
     }
 }

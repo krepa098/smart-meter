@@ -4,7 +4,6 @@ use crate::request;
 use crate::utils;
 use chrono::NaiveDate;
 use common::req::{DeviceInfo, MeasurementInfo, MeasurementMask, MeasurementType};
-use log::info;
 use wasm_bindgen::JsCast;
 use web_sys::{EventTarget, HtmlInputElement};
 use yew::prelude::*;
@@ -41,6 +40,7 @@ pub enum Msg {
 pub struct Model {
     pub ts_max: Option<NaiveDate>,
     pub ts_min: Option<NaiveDate>,
+    pub currnt_device_id: Option<u32>,
     pub devices: Option<Vec<DeviceInfo>>,
     pub device_names: HashMap<u32, String>,
 }
@@ -55,6 +55,7 @@ impl Component for Model {
             ts_max: None,
             ts_min: None,
             devices: None,
+            currnt_device_id: None,
             device_names: HashMap::new(),
         }
     }
@@ -189,8 +190,13 @@ impl Component for Model {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::MeasurementInfoReceived(m) => {
+                if self.currnt_device_id == Some(m.device_id as u32) {
+                    return false;
+                }
+
                 self.ts_max = Some(utils::utc_from_millis(m.to_timestamp).date_naive());
                 self.ts_min = Some(utils::utc_from_millis(m.from_timestamp).date_naive());
+                self.currnt_device_id = Some(m.device_id as u32);
                 true
             }
             Msg::DeviceInfoReceived(m) => {
@@ -219,14 +225,14 @@ impl Component for Model {
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
-        if first_render {
-            let link = ctx.link().clone();
-            let device_id = ctx.props().device_id;
-            let on_device_changed = ctx.props().on_device_id_changed.clone();
-            wasm_bindgen_futures::spawn_local(async move {
+        let link = ctx.link().clone();
+        let device_id = ctx.props().device_id;
+        let on_device_changed = ctx.props().on_device_id_changed.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            // resolve device names
+            if first_render {
                 let devices_resp = request::device_infos().await;
 
-                // resolve device names
                 for dev in &devices_resp {
                     let name_req = request::device_name(dev.device_id as u32).await;
                     match name_req {
@@ -240,15 +246,16 @@ impl Component for Model {
                     }
                 }
 
-                // request measurement info for selected device
-                let device_id = device_id.unwrap_or(devices_resp.first().unwrap().device_id as u32);
+                // devices
+                link.send_message(Msg::DeviceInfoReceived(devices_resp));
+            }
+
+            // request measurement info for selected device
+            if let Some(device_id) = device_id {
                 let resp = request::measurement_info(device_id).await;
                 link.send_message(Msg::MeasurementInfoReceived(resp));
                 on_device_changed.emit(device_id);
-
-                // devices
-                link.send_message(Msg::DeviceInfoReceived(devices_resp));
-            });
-        }
+            }
+        });
     }
 }
