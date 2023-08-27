@@ -48,7 +48,9 @@ pub fn chart_plotly(props: &Props) -> Html {
             Configuration::default()
                 .display_logo(false)
                 .editable(false)
-                .display_mode_bar(plotly::configuration::DisplayModeBar::Hover),
+                .display_mode_bar(plotly::configuration::DisplayModeBar::Hover)
+                .autosizable(true)
+                .responsive(true),
         );
 
         let from_ts_str = DateTime::<Local>::from(props.from_ts)
