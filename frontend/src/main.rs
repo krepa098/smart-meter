@@ -81,7 +81,7 @@ pub fn page_devices() -> Html {
         <div class="container-fluid">
             <div class="row">
                 <Sidebar current_route={Route::Devices}/>
-                <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                <div class="col-sm-8 col-sm-offset-4 col-md-9 col-md-offset-3">
                     <h1 class="page-header">{"Devices"}</h1>
                     <components::devices::Devices />
                 </div>
@@ -96,7 +96,7 @@ pub fn page_home() -> Html {
         <div class="container-fluid">
             <div class="row">
                 <Sidebar current_route={Route::Home}/>
-                <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                <div class="col-sm-8 col-sm-offset-4 col-md-9 col-md-offset-3">
                     <h1 class="page-header">{"Home"}</h1>
                 </div>
             </div>
@@ -152,7 +152,7 @@ pub fn page_readings() -> Html {
                     to_date={*to_date_handle} from_date={*from_date_handle}
                     {on_device_id_changed} device_id={*device_id_handle}
                 />
-                <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                <div class="col-sm-8 col-sm-offset-4 col-md-9 col-md-offset-3">
                     <h1 class="page-header">{"Readings"}</h1>
                     <div class="box-center">
                         <components::chart::Model
@@ -179,7 +179,7 @@ pub fn sidebar(props: &Props) -> Html {
     };
 
     html! {
-        <div class="col-sm-3 col-md-2 sidebar">
+        <div class="col-sm-4 col-md-3 sidebar">
             <ul class="nav nav-sidebar">
                 <img class="logo-img center-block" src="media/logo.webp"/>
                 <li class={class_active(Route::Home)}>
