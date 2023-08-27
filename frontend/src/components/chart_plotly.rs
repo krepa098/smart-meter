@@ -8,7 +8,7 @@ use plotly::{
 };
 use yew::prelude::*;
 
-use crate::utils;
+use crate::utils::{self, Stats};
 
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum Overlay {
@@ -113,25 +113,7 @@ fn add_overlay_stats(layout: &mut Layout, props: &Props) {
         return;
     }
 
-    let (p_min, p_max) = {
-        let mut y_min = f32::MAX;
-        let mut y_max = f32::MIN;
-        let mut x_min = 0;
-        let mut x_max = 0;
-
-        for pt in &props.datapoints {
-            if y_min > pt.1 {
-                y_min = pt.1;
-                x_min = pt.0;
-            }
-            if y_max < pt.1 {
-                y_max = pt.1;
-                x_max = pt.0;
-            }
-        }
-
-        ((x_min, y_min), (x_max, y_max))
-    };
+    let stats = props.datapoints.stats();
 
     layout.add_shape(
         Shape::new()
@@ -140,8 +122,8 @@ fn add_overlay_stats(layout: &mut Layout, props: &Props) {
             .shape_type(plotly::layout::ShapeType::Line)
             .x0(0)
             .x1(1)
-            .y0(p_min.1)
-            .y1(p_min.1)
+            .y0(stats.y_min)
+            .y1(stats.y_min)
             .line(
                 ShapeLine::new()
                     .color(NamedColor::Black)
@@ -157,8 +139,8 @@ fn add_overlay_stats(layout: &mut Layout, props: &Props) {
             .shape_type(plotly::layout::ShapeType::Line)
             .x0(0)
             .x1(1)
-            .y0(p_max.1)
-            .y1(p_max.1)
+            .y0(stats.y_max)
+            .y1(stats.y_max)
             .line(
                 ShapeLine::new()
                     .color(NamedColor::Black)
@@ -169,19 +151,19 @@ fn add_overlay_stats(layout: &mut Layout, props: &Props) {
     );
     layout.add_annotation(
         Annotation::new()
-            .x(p_max.0)
-            .y(p_max.1)
+            .x(stats.x_max)
+            .y(stats.y_max)
             .show_arrow(false)
             .y_shift(10.0)
-            .text(format!("max: {:.2}", p_max.1)),
+            .text(format!("max: {:.2}", stats.y_max)),
     );
     layout.add_annotation(
         Annotation::new()
-            .x(p_min.0)
-            .y(p_min.1)
+            .x(stats.x_min)
+            .y(stats.y_min)
             .show_arrow(false)
             .y_shift(-10.0)
-            .text(format!("min: {:.2}", p_min.1)),
+            .text(format!("min: {:.2}", stats.y_min)),
     );
 }
 

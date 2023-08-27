@@ -2,8 +2,7 @@ mod components;
 mod request;
 mod utils;
 
-use chrono::{DateTime, Days, Duration, DurationRound, Local, NaiveDate, Utc};
-use log::info;
+use chrono::{Days, Local, NaiveDate};
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -98,6 +97,7 @@ pub fn page_home() -> Html {
                 <Sidebar current_route={Route::Home}/>
                 <div class="main-content">
                     <h1 class="page-header">{"Home"}</h1>
+                    <components::summary::Summary />
                 </div>
             </div>
         </div>

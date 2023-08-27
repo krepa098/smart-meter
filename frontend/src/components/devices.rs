@@ -1,7 +1,7 @@
 use std::{time::Duration, collections::HashMap};
 use log::info;
 use wasm_bindgen::JsCast;
-use web_sys::{KeyboardEvent};
+use web_sys::KeyboardEvent;
 use yew::{function_component, html, use_state, Callback, use_mut_ref};
 
 use crate::{

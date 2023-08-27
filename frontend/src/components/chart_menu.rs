@@ -31,6 +31,7 @@ pub struct Props {
     pub device_id: Option<u32>,
 }
 
+#[allow(clippy::enum_variant_names)]
 pub enum Msg {
     MeasurementInfoReceived(MeasurementInfo),
     DeviceInfoReceived(Vec<DeviceInfo>),
