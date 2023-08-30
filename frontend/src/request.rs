@@ -68,7 +68,7 @@ pub async fn device_infos() -> Vec<DeviceInfo> {
 pub async fn measurement_info(device_id: u32) -> MeasurementInfo {
     let client = reqwest::Client::new();
 
-    let resp = client
+    client
         .get(api_url("api/measurements/info"))
         .query(&[("device_id", device_id as i64)])
         .header(ACCEPT, "application/json")
@@ -77,9 +77,7 @@ pub async fn measurement_info(device_id: u32) -> MeasurementInfo {
         .unwrap()
         .json::<MeasurementInfo>()
         .await
-        .unwrap();
-
-    resp
+        .unwrap()
 }
 
 pub async fn device_name(device_id: u32) -> Result<String> {

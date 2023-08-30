@@ -1,14 +1,12 @@
-use std::rc::Rc;
-
 use chrono::{DateTime, Local, Utc};
 use common::req::MeasurementType;
-use log::info;
 use plotly::{
     color::NamedColor,
     common::DashType::LongDash,
     layout::{Annotation, Axis, Legend, Margin, Shape, ShapeLine},
     Configuration, Layout, Plot, Scatter,
 };
+use std::rc::Rc;
 use yew::prelude::*;
 
 use crate::{
@@ -18,7 +16,7 @@ use crate::{
 
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum Overlay {
-    IAQ,
+    Iaq,
     DewPoint,
     Stats,
     Battery,
@@ -92,7 +90,7 @@ pub fn chart_plotly(props: &Props) -> Html {
         // add overlays
         for overlay in &props.overlays {
             match overlay {
-                Overlay::IAQ => add_overlay_iaq(&mut layout, props),
+                Overlay::Iaq => add_overlay_iaq(&mut layout, props),
                 Overlay::Stats => add_overlay_stats(&mut layout, props),
                 Overlay::DewPoint => add_overlay_humidity(&mut plot, &mut layout, props),
                 Overlay::Battery => add_overlay_battery(&mut layout, props),

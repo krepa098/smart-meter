@@ -51,7 +51,7 @@ impl Component for Model {
 
     type Properties = Props;
 
-    fn create(ctx: &Context<Self>) -> Self {
+    fn create(_ctx: &Context<Self>) -> Self {
         Self {
             ts_max: None,
             ts_min: None,
@@ -62,7 +62,7 @@ impl Component for Model {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let link = ctx.link();
+        let _link = ctx.link();
 
         // create measurement mask checkboxes
         let mes_types = [
