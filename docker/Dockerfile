@@ -48,8 +48,8 @@ RUN apt-get update && apt-get install -y sqlite3 libsqlite3-dev
 # diesel cli
 COPY --from=builder /usr/local/bin/diesel /usr/local/bin/diesel
 
-# trunk
-COPY --from=builder /usr/local/bin/trunk /usr/local/bin/trunk
+# simple http server
+RUN cargo install --root=/usr/local --locked simple-http-server
 
 # add scripts
 RUN mkdir -p /usr/local/scripts
