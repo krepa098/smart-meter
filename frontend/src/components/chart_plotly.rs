@@ -230,7 +230,7 @@ fn add_overlay_iaq(layout: &mut Layout, _props: &Props) {
 }
 
 fn add_overlay_humidity(plot: &mut Plot, _layout: &mut Layout, props: &Props) {
-    let series = props.dataset.get(&MeasurementType::DewTemperature).unwrap();
+    let series = props.dataset.get(&MeasurementType::DewPoint).unwrap();
 
     let trace = Scatter::new(
         series

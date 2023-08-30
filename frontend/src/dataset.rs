@@ -81,7 +81,7 @@ pub fn dataset_from_request(resp: &MeasurementRequestResponse) -> Dataset {
     }
 
     dataset.insert(
-        MeasurementType::DewTemperature,
+        MeasurementType::DewPoint,
         dew_point(
             &dataset.get(&MeasurementType::Humidity).unwrap().data,
             &dataset.get(&MeasurementType::Temperature).unwrap().data,
@@ -152,9 +152,9 @@ pub fn dew_point(rh: &[(i64, f32)], temp: &[(i64, f32)]) -> Series {
                 (*t, (b * alpha) / (a - alpha))
             })
             .collect(),
-        kind: MeasurementType::DewTemperature,
+        kind: MeasurementType::DewPoint,
         unit: "°C".to_string(),
-        name: "Dew Temperature".to_string(),
+        name: "Dew Point".to_string(),
         scale: 1.0,
     }
 }

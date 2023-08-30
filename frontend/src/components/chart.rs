@@ -54,7 +54,7 @@ impl Component for Model {
                 MeasurementType::BatCapacity => vec![],
                 MeasurementType::BatVoltage => vec![],
                 MeasurementType::AirQuality => vec![Overlay::IAQ],
-                MeasurementType::DewTemperature => vec![],
+                MeasurementType::DewPoint => vec![],
             }
         };
 
