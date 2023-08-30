@@ -1,27 +1,34 @@
+use std::rc::Rc;
+
 use chrono::{DateTime, Local, Utc};
+use common::req::MeasurementType;
 use log::info;
 use plotly::{
     color::NamedColor,
     common::DashType::LongDash,
-    layout::{Annotation, Axis, Margin, Shape, ShapeLine},
+    layout::{Annotation, Axis, Legend, Margin, Shape, ShapeLine},
     Configuration, Layout, Plot, Scatter,
 };
 use yew::prelude::*;
 
-use crate::utils::{self, Stats};
+use crate::{
+    dataset::{Dataset, Stats},
+    utils,
+};
 
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum Overlay {
     None,
     IAQ,
+    DewPoint,
     Stats,
 }
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
     pub id: String,
-    pub unit: String,
-    pub datapoints: Vec<(i64, f32)>,
+    pub dataset: Rc<Dataset>,
+    pub kind: MeasurementType,
     pub from_ts: DateTime<Utc>,
     pub to_ts: DateTime<Utc>,
     pub req_ts: Option<DateTime<Utc>>,
@@ -32,17 +39,20 @@ pub struct Props {
 #[function_component(ChartPlotly)]
 pub fn chart_plotly(props: &Props) -> Html {
     let id = props.id.clone();
+    let series = props.dataset.get(&props.kind).unwrap();
     let p = yew_hooks::use_async::<_, _, ()>({
         let mut plot = Plot::new();
         let trace = Scatter::new(
-            props
-                .datapoints
+            series
+                .data
                 .iter()
-                .map(|v| DateTime::<Local>::from(utils::utc_from_millis(v.0)))
+                .map(|(t, _)| DateTime::<Local>::from(utils::utc_from_millis(*t)))
                 .collect(),
-            props.datapoints.iter().map(|v| v.1).collect(),
+            series.data.iter().map(|(_, y)| *y).collect(),
         )
-        .text(&props.unit);
+        .text(&series.unit)
+        .name(&series.name)
+        .connect_gaps(false);
         plot.add_trace(trace);
         plot.set_configuration(
             Configuration::default()
@@ -60,25 +70,34 @@ pub fn chart_plotly(props: &Props) -> Html {
             .format("%Y-%m-%d %H:%M:%S")
             .to_string();
 
-        plot.set_layout({
-            let mut layout = Layout::default()
-                .hover_mode(plotly::layout::HoverMode::XUnified)
-                .auto_size(true)
-                .margin(Margin::default().top(20).bottom(40).left(40).right(20))
-                .x_axis(Axis::new().range(vec![from_ts_str, to_ts_str]));
+        // create layout
+        let mut layout = Layout::default()
+            .hover_mode(plotly::layout::HoverMode::XUnified)
+            .auto_size(true)
+            .margin(Margin::default().top(20).bottom(40).left(40).right(20))
+            .x_axis(Axis::new().range(vec![from_ts_str, to_ts_str]))
+            .legend(
+                Legend::new()
+                    .y_anchor(plotly::common::Anchor::Bottom)
+                    .x_anchor(plotly::common::Anchor::Right)
+                    .orientation(plotly::common::Orientation::Horizontal)
+                    .y(1.02)
+                    .x(1.0),
+            );
 
-            if let Some(range) = props.y_range {
-                layout = layout.y_axis(Axis::new().range(vec![range.0, range.1]));
-            }
+        if let Some(range) = props.y_range {
+            layout = layout.y_axis(Axis::new().range(vec![range.0, range.1]));
+        }
 
-            match props.overlay {
-                Overlay::IAQ => add_overlay_iaq(&mut layout, props),
-                Overlay::Stats => add_overlay_stats(&mut layout, props),
-                Overlay::None => (),
-            }
+        // add overlays
+        match props.overlay {
+            Overlay::IAQ => add_overlay_iaq(&mut layout, props),
+            Overlay::Stats => add_overlay_stats(&mut layout, props),
+            Overlay::DewPoint => add_overlay_humidity(&mut plot, &mut layout, props),
+            Overlay::None => (),
+        }
 
-            layout
-        });
+        plot.set_layout(layout);
 
         async move {
             plotly::bindings::new_plot(&id, &plot).await;
@@ -95,7 +114,7 @@ pub fn chart_plotly(props: &Props) -> Html {
         props.req_ts,
     );
 
-    let has_data = !props.datapoints.is_empty();
+    let has_data = !series.data.is_empty();
 
     html! {
         <>
@@ -109,11 +128,13 @@ pub fn chart_plotly(props: &Props) -> Html {
 }
 
 fn add_overlay_stats(layout: &mut Layout, props: &Props) {
-    if props.datapoints.is_empty() {
+    let series = props.dataset.get(&props.kind).unwrap();
+
+    if series.data.is_empty() {
         return;
     }
 
-    let stats = props.datapoints.stats();
+    let stats = series.stats();
 
     layout.add_shape(
         Shape::new()
@@ -204,4 +225,20 @@ fn add_overlay_iaq(layout: &mut Layout, _props: &Props) {
             .fill_color(NamedColor::Red)
             .opacity(0.05),
     );
+}
+
+fn add_overlay_humidity(plot: &mut Plot, _layout: &mut Layout, props: &Props) {
+    let series = props.dataset.get(&MeasurementType::DewTemperature).unwrap();
+
+    let trace = Scatter::new(
+        series
+            .data
+            .iter()
+            .map(|(t, _)| DateTime::<Local>::from(utils::utc_from_millis(*t)))
+            .collect(),
+        series.data.iter().map(|(_, y)| *y).collect(),
+    )
+    .text(&series.unit)
+    .name(&series.name);
+    plot.add_trace(trace);
 }

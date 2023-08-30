@@ -1,20 +1,13 @@
+use std::rc::Rc;
+
 use super::chart_plotly::Overlay;
-use crate::request;
+use crate::{request, dataset::dataset_from_request};
 use chrono::{prelude::*, Days};
 use common::req::{self, MeasurementMask, MeasurementRequestResponse, MeasurementType};
 use yew::prelude::*;
 
 pub enum Msg {
     MeasurementsReceived(MeasurementRequestResponse),
-}
-
-struct SeriesProps {
-    id: String,
-    unit: String,
-    ty: MeasurementType,
-    scale: f32,
-    overlay: Overlay,
-    y_range: Option<(f32, f32)>,
 }
 
 pub struct Model {
@@ -53,48 +46,19 @@ impl Component for Model {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let series_props = [
-            SeriesProps {
-                id: "Temperature".to_owned(),
-                unit: "°C".to_owned(),
-                ty: MeasurementType::Temperature,
-                scale: 1.0,
-                overlay: Overlay::Stats,
-                y_range: None,
-            },
-            SeriesProps {
-                id: "Humidity".to_owned(),
-                unit: "%".to_owned(),
-                ty: MeasurementType::Humidity,
-                scale: 1.0,
-                overlay: Overlay::None,
-                y_range: None,
-            },
-            SeriesProps {
-                id: "Pressure".to_owned(),
-                unit: "hPa".to_owned(),
-                ty: MeasurementType::Pressure,
-                scale: 1.0 / 100.0,
-                overlay: Overlay::None,
-                y_range: None,
-            },
-            SeriesProps {
-                id: "Air Quality".to_owned(),
-                unit: "IAQ".to_owned(),
-                ty: MeasurementType::AirQuality,
-                scale: 1.0,
-                overlay: Overlay::IAQ,
-                y_range: None,
-            },
-            SeriesProps {
-                id: "Battery Voltage".to_owned(),
-                unit: "V".to_owned(),
-                ty: MeasurementType::BatVoltage,
-                scale: 1.0,
-                overlay: Overlay::None,
-                y_range: Some((4.0, 6.0)),
-            },
-        ];
+        let overlay = |meas_type: MeasurementType| {
+            match meas_type {
+                MeasurementType::Temperature => Overlay::DewPoint,
+                MeasurementType::Humidity => Overlay::None,
+                MeasurementType::Pressure => Overlay::None,
+                MeasurementType::BatCapacity => Overlay::None,
+                MeasurementType::BatVoltage => Overlay::None,
+                MeasurementType::AirQuality => Overlay::IAQ,
+                MeasurementType::DewTemperature => Overlay::None,
+            }
+        };
+
+        let dataset = Rc::new(self.measurements.as_ref().map_or(Default::default(),dataset_from_request));
 
         let from_ts: DateTime<Utc> = DateTime::from(
             ctx.props()
@@ -113,44 +77,38 @@ impl Component for Model {
         );
 
         let mask = ctx.props().measurement_mask;
-        let charts_html: Vec<_> = series_props
-            .iter()
-            .map(|prop| {
-                if mask.is_set(prop.ty) {
-                    html! {
-                        <div class="panel panel-default">
-                            <div class="panel-heading">
-                                <h3 class="panel-title">{format!("{} in {}", prop.id, prop.unit)}</h3>
-                            </div>
-                            <div class="panel-body">
-                                <div class="row">
-                                    if let Some(measurements) = self.measurements.as_ref() {
-                                        <div class="col-md-12">
-                                            <crate::components::chart_plotly::ChartPlotly
-                                                id={prop.id.to_string()}
-                                                unit={prop.unit.to_string()}
-                                                {from_ts}
-                                                {to_ts}
-                                                req_ts={self.req_ts}
-                                                overlay={prop.overlay}
-                                                y_range={prop.y_range}
-                                                datapoints={measurements.timestamps
-                                                    .iter()
-                                                    .zip(&measurements.data[&(prop.ty as u32)])
-                                                    .map(|(a, b)| (*a, b.map_or(std::f32::NAN, |v| v* prop.scale)))
-                                                    .collect::<Vec<_>>()}
-                                            />
-                                        </div>
-                                    }
-                                </div> 
-                            </div>
+        let charts_html: Vec<_> = dataset.values().map(|series| {
+            if mask.is_set(series.kind) {
+                html! {
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">{format!("{} in {}", series.name, series.unit)}</h3>
                         </div>
-                    }
-                } else {
-                    html! {}
+                        <div class="panel-body">
+                            <div class="row">
+                                if !series.data.is_empty() {
+                                    <div class="col-md-12">
+                                        <crate::components::chart_plotly::ChartPlotly
+                                            id={series.name.clone()}
+                                            {from_ts}
+                                            {to_ts}
+                                            req_ts={self.req_ts}
+                                            overlay={overlay(series.kind)}
+                                            y_range={None}
+                                            dataset={dataset.clone()}
+                                            kind={series.kind}
+                                        />
+                                    </div>
+                                }
+                            </div> 
+                        </div>
+                    </div>
                 }
-            })
-            .collect();
+            } else {
+                html! {}
+            }
+        })
+        .collect();
 
         // html
         html! {
