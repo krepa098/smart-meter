@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use num_enum::TryFromPrimitive;
+
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 #[allow(unused)]
 pub struct DeviceInfo {
@@ -14,15 +16,19 @@ pub struct DeviceInfo {
 }
 
 #[allow(unused)]
-#[derive(Debug, serde::Deserialize, Clone, Copy)]
+#[derive(Debug, serde::Deserialize, Clone, Copy, TryFromPrimitive, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum MeasurementType {
+    // from sensor data
     Temperature = 1 << 0,
     Humidity = 1 << 1,
     Pressure = 1 << 2,
     BatCapacity = 1 << 3,
     BatVoltage = 1 << 4,
     AirQuality = 1 << 5,
+
+    // calculated
+    DewTemperature = 1 << 6,
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]

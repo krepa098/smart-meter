@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1.0.152", features = ["derive"] }
+num_enum = "0.7.0"
