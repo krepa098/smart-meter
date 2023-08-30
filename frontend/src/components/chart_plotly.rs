@@ -32,7 +32,7 @@ pub struct Props {
     pub from_ts: DateTime<Utc>,
     pub to_ts: DateTime<Utc>,
     pub req_ts: Option<DateTime<Utc>>,
-    pub overlay: Overlay,
+    pub overlays: Vec<Overlay>,
     pub y_range: Option<(f32, f32)>,
 }
 
@@ -90,11 +90,13 @@ pub fn chart_plotly(props: &Props) -> Html {
         }
 
         // add overlays
-        match props.overlay {
-            Overlay::IAQ => add_overlay_iaq(&mut layout, props),
-            Overlay::Stats => add_overlay_stats(&mut layout, props),
-            Overlay::DewPoint => add_overlay_humidity(&mut plot, &mut layout, props),
-            Overlay::None => (),
+        for overlay in &props.overlays {
+            match overlay {
+                Overlay::IAQ => add_overlay_iaq(&mut layout, props),
+                Overlay::Stats => add_overlay_stats(&mut layout, props),
+                Overlay::DewPoint => add_overlay_humidity(&mut plot, &mut layout, props),
+                Overlay::None => (),
+            }
         }
 
         plot.set_layout(layout);

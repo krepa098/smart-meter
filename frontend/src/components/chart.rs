@@ -48,13 +48,13 @@ impl Component for Model {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let overlay = |meas_type: MeasurementType| {
             match meas_type {
-                MeasurementType::Temperature => Overlay::DewPoint,
-                MeasurementType::Humidity => Overlay::None,
-                MeasurementType::Pressure => Overlay::None,
-                MeasurementType::BatCapacity => Overlay::None,
-                MeasurementType::BatVoltage => Overlay::None,
-                MeasurementType::AirQuality => Overlay::IAQ,
-                MeasurementType::DewTemperature => Overlay::None,
+                MeasurementType::Temperature => vec![Overlay::Stats, Overlay::DewPoint],
+                MeasurementType::Humidity => vec![Overlay::Stats],
+                MeasurementType::Pressure => vec![Overlay::Stats],
+                MeasurementType::BatCapacity => vec![],
+                MeasurementType::BatVoltage => vec![],
+                MeasurementType::AirQuality => vec![Overlay::IAQ],
+                MeasurementType::DewTemperature => vec![],
             }
         };
 
@@ -93,7 +93,7 @@ impl Component for Model {
                                             {from_ts}
                                             {to_ts}
                                             req_ts={self.req_ts}
-                                            overlay={overlay(series.kind)}
+                                            overlays={overlay(series.kind)}
                                             y_range={None}
                                             dataset={dataset.clone()}
                                             kind={series.kind}

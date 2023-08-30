@@ -91,6 +91,7 @@ pub fn dataset_from_request(resp: &MeasurementRequestResponse) -> Dataset {
     dataset
 }
 
+#[derive(Debug)]
 pub struct SeriesStats {
     pub x_min: i64,
     pub x_max: i64,
@@ -119,11 +120,15 @@ impl Stats for Series {
         let mut y_min = f32::MAX;
         let mut y_max = f32::MIN;
 
-        for (x, y) in self.data.iter() {
-            x_min = x_min.min(*x);
-            x_max = x_max.max(*x);
-            y_min = y_min.min(*y);
-            y_max = y_max.max(*y);
+        for (x, y) in &self.data {
+            if y_max < *y {
+                y_max = *y;
+                x_max = *x;
+            }
+            if y_min > *y {
+                y_min = *y;
+                x_min = *x;
+            }
         }
 
         SeriesStats {
