@@ -43,7 +43,7 @@ RUN trunk build --release
 FROM rust:slim-buster AS runner
 
 # install deps
-RUN apt-get update && apt-get install -y sqlite3 libsqlite3-dev
+RUN apt-get update && apt-get install -y sqlite3 libsqlite3-dev pkg-config libssl-dev
 
 # diesel cli
 COPY --from=builder /usr/local/bin/diesel /usr/local/bin/diesel
