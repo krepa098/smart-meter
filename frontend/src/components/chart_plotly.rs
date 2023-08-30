@@ -18,10 +18,10 @@ use crate::{
 
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum Overlay {
-    None,
     IAQ,
     DewPoint,
     Stats,
+    Battery,
 }
 
 #[derive(Properties, PartialEq)]
@@ -95,7 +95,7 @@ pub fn chart_plotly(props: &Props) -> Html {
                 Overlay::IAQ => add_overlay_iaq(&mut layout, props),
                 Overlay::Stats => add_overlay_stats(&mut layout, props),
                 Overlay::DewPoint => add_overlay_humidity(&mut plot, &mut layout, props),
-                Overlay::None => (),
+                Overlay::Battery => add_overlay_battery(&mut layout, props),
             }
         }
 
@@ -243,4 +243,42 @@ fn add_overlay_humidity(plot: &mut Plot, _layout: &mut Layout, props: &Props) {
     .text(&series.unit)
     .name(&series.name);
     plot.add_trace(trace);
+}
+
+fn add_overlay_battery(layout: &mut Layout, _props: &Props) {
+    layout.add_shape(
+        Shape::new()
+            .x_ref("paper")
+            .y_ref("y")
+            .shape_type(plotly::layout::ShapeType::Line)
+            .x0(0)
+            .x1(1)
+            .y0(6.0)
+            .y1(6.0)
+            .line(
+                ShapeLine::new()
+                    .color(NamedColor::Green)
+                    .width(1.0)
+                    .dash(LongDash),
+            )
+            .opacity(1.0),
+    );
+
+    layout.add_shape(
+        Shape::new()
+            .x_ref("paper")
+            .y_ref("y")
+            .shape_type(plotly::layout::ShapeType::Line)
+            .x0(0)
+            .x1(1)
+            .y0(4.2)
+            .y1(4.2)
+            .line(
+                ShapeLine::new()
+                    .color(NamedColor::Red)
+                    .width(1.0)
+                    .dash(LongDash),
+            )
+            .opacity(1.0),
+    );
 }
