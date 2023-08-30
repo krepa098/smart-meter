@@ -15,4 +15,4 @@ echo "Launching backend..."
 
 # run frontend
 echo "Launching frontend..."
-cd /usr/local/bin/frontend && trunk serve --release --address=$TRUNK_ADDRESS --port=$TRUNK_PORT
+cd /usr/local/bin/frontend && trunk serve --release --address=$TRUNK_ADDRESS --port=$TRUNK_PORT --no-autoreload
