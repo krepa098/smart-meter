@@ -28,7 +28,7 @@ pub enum MeasurementType {
     AirQuality = 1 << 5,
 
     // calculated
-    DewTemperature = 1 << 6,
+    DewPoint = 1 << 6,
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
