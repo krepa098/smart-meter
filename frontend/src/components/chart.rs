@@ -58,6 +58,15 @@ impl Component for Model {
             }
         };
 
+        // define the order of the shown series
+        let series_keys = [
+            MeasurementType::Temperature,
+            MeasurementType::Humidity,
+            MeasurementType::Pressure,
+            MeasurementType::AirQuality,
+            MeasurementType::BatVoltage,
+        ];
+
         let dataset = Rc::new(self.measurements.as_ref().map_or(Default::default(),dataset_from_request));
 
         let from_ts: DateTime<Utc> = DateTime::from(
@@ -77,38 +86,38 @@ impl Component for Model {
         );
 
         let mask = ctx.props().measurement_mask;
-        let charts_html: Vec<_> = dataset.values().map(|series| {
-            if mask.is_set(series.kind) {
-                html! {
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">{format!("{} in {}", series.name, series.unit)}</h3>
+        let charts_html: Vec<_> = series_keys.iter().map(|k| {
+            if let Some(series) = dataset.get(k) {
+                if mask.is_set(series.kind) {
+                    return html! {
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h3 class="panel-title">{format!("{} in {}", series.name, series.unit)}</h3>
+                            </div>
+                            <div class="panel-body">
+                                <div class="row">
+                                    if !series.data.is_empty() {
+                                        <div class="col-md-12">
+                                            <crate::components::chart_plotly::ChartPlotly
+                                                id={series.name.clone()}
+                                                {from_ts}
+                                                {to_ts}
+                                                req_ts={self.req_ts}
+                                                overlays={overlay(series.kind)}
+                                                y_range={None}
+                                                dataset={dataset.clone()}
+                                                kind={series.kind}
+                                            />
+                                        </div>
+                                    }
+                                </div> 
+                            </div>
                         </div>
-                        <div class="panel-body">
-                            <div class="row">
-                                if !series.data.is_empty() {
-                                    <div class="col-md-12">
-                                        <crate::components::chart_plotly::ChartPlotly
-                                            id={series.name.clone()}
-                                            {from_ts}
-                                            {to_ts}
-                                            req_ts={self.req_ts}
-                                            overlays={overlay(series.kind)}
-                                            y_range={None}
-                                            dataset={dataset.clone()}
-                                            kind={series.kind}
-                                        />
-                                    </div>
-                                }
-                            </div> 
-                        </div>
-                    </div>
+                    }
                 }
-            } else {
-                html! {}
             }
-        })
-        .collect();
+            html! {}
+        }).collect();
 
         // html
         html! {
