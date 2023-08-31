@@ -73,7 +73,7 @@ pub fn device_list() -> yew::Html {
                 let last_seen = utils::utc_from_millis(dev.last_seen * 1000);
 
                 let duration_since_last_report = utils::utc_now() - last_seen;
-                let is_online = duration_since_last_report < chrono::Duration::from_std(Duration::from_secs(dev.report_interval as u64) - Duration::from_secs(60)).unwrap();
+                let is_online = duration_since_last_report < chrono::Duration::from_std(Duration::from_secs(dev.report_interval as u64) + Duration::from_secs(60)).unwrap();
                 let bat_cap_str = latest_device_measurements.as_ref().map_or(
                     NOT_AVAILABLE.to_string(),
                     |m| format!(
