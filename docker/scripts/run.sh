@@ -15,4 +15,4 @@ echo "Launching backend..."
 
 # run frontend
 echo "Launching frontend..."
-cd /usr/local/bin/frontend/dist && simple-http-server -i --ip=$TRUNK_ADDRESS --port=$TRUNK_PORT
+cd /usr/local/bin/frontend/dist && simple-http-server -i --ip=$TRUNK_ADDRESS --port=$TRUNK_PORT --compress=wasm,js,css
