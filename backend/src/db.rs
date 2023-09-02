@@ -1,5 +1,5 @@
 use crate::{schema::*, utils};
-use anyhow::{bail, Result};
+use anyhow::Result;
 use common::req;
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
@@ -35,7 +35,6 @@ pub mod models {
     #[derive(Debug, Queryable, serde::Serialize)]
     #[allow(unused)]
     pub struct DeviceMeasurement {
-        pub id: i32,
         pub device_id: i32,
         pub timestamp: i64,           // ms since epoch
         pub temperature: Option<f32>, // °C
@@ -129,7 +128,7 @@ impl Db {
             .filter(device_id.eq(dev_id as i32))
             .filter(timestamp.ge(from_date.unwrap_or(0) as i64))
             .filter(timestamp.le(to_date.unwrap_or(utils::ms_since_epoch() as u64) as i64))
-            .order(id.desc())
+            .order(timestamp.desc())
             .load::<models::DeviceMeasurement>(&mut self.conn)?;
 
         // TODO: integrate this into the query somehow
@@ -187,7 +186,7 @@ impl Db {
         use crate::schema::measurements::dsl::*;
         let res = measurements
             .limit(100)
-            .order(id.desc())
+            .order(timestamp.desc())
             .load::<models::DeviceMeasurement>(&mut self.conn)?;
 
         Ok(res)
@@ -197,11 +196,11 @@ impl Db {
         use crate::schema::measurements::dsl::*;
         let oldest_entry = measurements
             .filter(device_id.eq(dev_id as i32))
-            .order(id.asc())
+            .order(timestamp.asc())
             .first::<models::DeviceMeasurement>(&mut self.conn)?;
         let most_recent_entry = measurements
             .filter(device_id.eq(dev_id as i32))
-            .order(id.desc())
+            .order(timestamp.desc())
             .first::<models::DeviceMeasurement>(&mut self.conn)?;
 
         let count = measurements

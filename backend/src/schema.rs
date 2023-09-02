@@ -21,7 +21,20 @@ diesel::table! {
 }
 
 diesel::table! {
-    measurements (id) {
+    measurements (device_id, timestamp) {
+        device_id -> Integer,
+        timestamp -> BigInt,
+        temperature -> Nullable<Float>,
+        humidity -> Nullable<Float>,
+        pressure -> Nullable<Float>,
+        air_quality -> Nullable<Float>,
+        bat_v -> Nullable<Float>,
+        bat_cap -> Nullable<Float>,
+    }
+}
+
+diesel::table! {
+    measurements_old (id) {
         id -> Integer,
         device_id -> Integer,
         timestamp -> BigInt,
@@ -38,4 +51,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     device_names,
     devices,
     measurements,
+    measurements_old,
 );
