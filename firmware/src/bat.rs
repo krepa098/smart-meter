@@ -6,13 +6,12 @@ use esp_idf_hal::{
 
 pub struct BatMonitor {
     driver: adc::AdcDriver<'static, adc::ADC1>,
-    channel: adc::AdcChannelDriver<'static, gpio::Gpio1, adc::Atten11dB<adc::ADC1>>,
+    channel: adc::AdcChannelDriver<'static, { adc::attenuation::DB_11 }, gpio::Gpio1>,
 }
 
 impl BatMonitor {
     pub fn new(adc1: esp_idf_hal::adc::ADC1, pin: gpio::Gpio1) -> Result<Self> {
-        let channel: adc::AdcChannelDriver<_, adc::Atten11dB<adc::ADC1>> =
-            adc::AdcChannelDriver::new(pin)?;
+        let channel = adc::AdcChannelDriver::new(pin)?;
         let driver = esp_idf_hal::adc::AdcDriver::new(
             adc1,
             &adc::config::Config::new()
