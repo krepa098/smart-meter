@@ -75,11 +75,11 @@ pub fn device_list() -> yew::Html {
             .map(|dev| {
                 let device_id = dev.device_id;
                 let last_seen = utils::utc_from_millis(dev.last_seen * 1000);
-                let uptime = humantime::format_duration(Duration::from_secs(dev.uptime as u64));
+                let uptime = humantime::format_duration(Duration::from_secs(dev.uptime as u64)).to_string();
                 let report_interval =
-                    humantime::format_duration(Duration::from_secs(dev.report_interval as u64));
+                    humantime::format_duration(Duration::from_secs(dev.report_interval as u64)).to_string();
                 let sample_interval =
-                    humantime::format_duration(Duration::from_secs(dev.sample_interval as u64));
+                    humantime::format_duration(Duration::from_secs(dev.sample_interval as u64)).to_string();
 
                 let duration_since_last_report = utils::utc_now() - last_seen;
                 let is_online = duration_since_last_report < chrono::Duration::from_std(Duration::from_secs(dev.report_interval as u64) + Duration::from_secs(60)).unwrap();

@@ -105,14 +105,10 @@ pub fn chart_plotly(props: &Props) -> Html {
         }
     });
 
-    use_effect_with_deps(
-        move |_| {
-            p.run();
-            || ()
-        },
-        // replot whenever these change
-        props.req_ts,
-    );
+    use_effect_with(props.req_ts, move |_| {
+        p.run();
+        || ()
+    });
 
     let has_data = !series.data.is_empty();
 
