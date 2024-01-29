@@ -16,11 +16,12 @@ Each device has a unique ID derived from its MAC address.
 
 The firmware is built on Espressif's [esp-rs](https://github.com/esp-rs).
 
-![pcb](.doc/pcb-blockdiagram.png)
+<img src=".doc/pcb-blockdiagram.png" width="700">
 
 
 ### Power Profile
-![power profile](.doc/power-profile.png)
+
+<img src=".doc/power-profile.png" width="700">
 
 |State   |Charge   | Avg. Current |
 |--------|---------|--------------|
