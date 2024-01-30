@@ -31,7 +31,7 @@ The firmware is built on Espressif's [esp-rs](https://github.com/esp-rs).
 |Light Sleep    | -     | 0.47mA  |
 
 ## Frontend
-The frontend is hosted on a local server (e.g., a NAS) running the frontend docker image.
+The frontend is hosted on a local server (e.g., a NAS) running the docker image.
 It uses the [yew framework](https://github.com/yewstack/yew) (web app with WebAssembly written in Rust) and communicates with the backend via its REST API.
 
 <img src=".doc/frontend.png" width="700">
@@ -50,7 +50,7 @@ The REST API ([Actix framework](https://actix.rs/)) features the following route
 The backend listens to incoming packages on UDP port ```8989``` and picks up new device on their first broadcast.
 
 
-## Docker
+## Docker Image
 Frontend and backend are bundled into a single docker image, making it very easy to deploy on all systems supporting containers.
 
 ## License
