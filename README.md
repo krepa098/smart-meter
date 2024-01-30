@@ -31,7 +31,7 @@ The firmware is built on Espressif's [esp-rs](https://github.com/esp-rs).
 |Light Sleep    | -     | 0.47mA  |
 
 ## Frontend
-The frontend is hosted on a local server (e.g., a NAS) running the fontend docker image.
+The frontend is hosted on a local server (e.g., a NAS) running the frontend docker image.
 It uses the [yew framework](https://github.com/yewstack/yew) (web app with WebAssembly written in Rust) and communicates with the backend via its REST API.
 
 <img src=".doc/frontend.png" width="700">
