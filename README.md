@@ -8,7 +8,7 @@ The system has the following components:
 * Backend (Database containing the measurements)
 
 ## Sensor
-The sensor connects via WiFi to the home network and broadcasts its measurements in a 15min interval via UDP broadcasting.
+The sensor connects via WiFi to the home network and broadcasts its measurements in a 15min interval via UDP subnet broadcasting.
 Measurements are taken every 5min by the Bosch BME680.
 The ESP32-C3 runs the firmware handling data acquisition and WiFi connectivity.
 The device is powered by 4 AA batteries and lasts for about 2.5 months on a single charge.
@@ -47,7 +47,7 @@ The REST API ([Actix framework](https://actix.rs/)) features the following route
 * GET ```/api/device_name```: Returns the name of a device by ID
 * POST ```/api/device_name```: Sets the name of a device by ID
 
-The backend also listens to UDP port ```8989``` on the broadcast address ```0.0.0.0``` and picks up new device on their first broadcast.
+The backend listens to incoming packages on UDP port ```8989``` and picks up new device on their first broadcast.
 
 
 ## Docker
